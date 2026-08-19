@@ -186,7 +186,7 @@
 
   var PALETTE = ["#3C8B5C", "#B9873B", "#3E8FB0", "#C1483D", "#C99A2E", "#C9598A", "#2F9E9E", "#7A5CB0", "#A25B8C", "#5C7A8A", "#8B5E3C", "#4A8B6B", "#2C6E8A", "#8A7F6B"];
   var STORAGE_KEY = "shopping-app:data";
-  var CATALOG_VERSION = 3;
+  var CATALOG_VERSION = 4;
 
   /* ---------- Couche de stockage : window.storage (artefact Claude, partagé)
      avec repli automatique sur localStorage (navigateur classique, local à cet appareil) ---------- */
@@ -256,12 +256,14 @@
   /* ---------- Export HTML autonome (statique, pas de partage en temps réel) ---------- */
   function buildExportHtml(title, dateLabel, groups, note) {
     var flatItems = [];
+    var rayonsMeta = [];
     groups.forEach(function (g) {
+      rayonsMeta.push({ name: g.name, color: g.color });
       g.items.forEach(function (it) {
         flatItems.push({ name: it.name, rayon: g.name, note: it.note || "", checked: !!it.checked });
       });
     });
-    var payload = JSON.stringify({ version: 1, title: title, date: dateLabel, note: note || "", items: flatItems }).replace(/</g, "\\u003c");
+    var payload = JSON.stringify({ version: 2, title: title, date: dateLabel, note: note || "", rayons: rayonsMeta, items: flatItems }).replace(/</g, "\\u003c");
 
     var groupsHtml = groups.map(function (g) {
       var itemsHtml = g.items.map(function (it) {
@@ -411,14 +413,18 @@
 
   function mergeImportedData(data) {
     var added = 0;
+    var colorByRayonName = {};
+    (data.rayons || []).forEach(function (r) {
+      if (r && r.name) colorByRayonName[r.name.toLowerCase()] = r.color;
+    });
     (data.items || []).forEach(function (it) {
       if (!it || !it.name) return;
       var rayon = null;
       if (it.rayon) {
         rayon = state.rayons.find(function (r) { return r.name.toLowerCase() === it.rayon.toLowerCase(); });
         if (!rayon) {
-          var idx = state.rayons.length % PALETTE.length;
-          rayon = { id: uid("r"), name: it.rayon, color: PALETTE[idx] };
+          var color = colorByRayonName[it.rayon.toLowerCase()] || PALETTE[state.rayons.length % PALETTE.length];
+          rayon = { id: uid("r"), name: it.rayon, color: color };
           state.rayons.push(rayon);
         }
       }
@@ -462,6 +468,24 @@
     });
   }
 
+  // Rayons renommés/scindés dont l'ancien nom doit disparaître : les produits restants
+  // sont déplacés vers le rayon de repli avant suppression, pour ne rien perdre.
+  var OBSOLETE_RAYONS = [
+    { oldName: "boucherie et poissonnerie", fallbackName: "boucherie / charcuterie" }
+  ];
+
+  function removeObsoleteRayons() {
+    OBSOLETE_RAYONS.forEach(function (entry) {
+      var old = state.rayons.find(function (r) { return r.name.toLowerCase() === entry.oldName; });
+      if (!old) return;
+      var fallback = state.rayons.find(function (r) { return r.name.toLowerCase() === entry.fallbackName; }) || state.rayons[0];
+      if (fallback) {
+        state.catalog.forEach(function (p) { if (p.rayonId === old.id) p.rayonId = fallback.id; });
+      }
+      state.rayons = state.rayons.filter(function (r) { return r.id !== old.id; });
+    });
+  }
+
   function load() {
     storage.get(STORAGE_KEY).then(function (res) {
       if (res && res.value) {
@@ -485,6 +509,7 @@
     }).catch(function () { /* pas de données existantes */ }).finally(function () {
       if ((state.catalogVersion || 0) < CATALOG_VERSION) {
         mergeMissingDefaults();
+        removeObsoleteRayons();
         state.catalogVersion = CATALOG_VERSION;
         scheduleSave();
       }
