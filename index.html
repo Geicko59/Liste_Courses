@@ -43,53 +43,116 @@
       shrink: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
       expand: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
       download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/>',
-      upload: '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 19h16"/>'
+      upload: '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 19h16"/>',
+      share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5"/><path d="M15.4 6.5 8.6 10.5"/>'
     };
     return '<svg ' + common + '>' + (paths[name] || "") + "</svg>";
   }
 
   /* ---------- Données par défaut ---------- */
   var DEFAULT_RAYONS = [
-    { id: "r1", name: "Fruits et légumes", color: "#3C8B5C" },
-    { id: "r2", name: "Boulangerie", color: "#B9873B" },
-    { id: "r3", name: "Crèmerie et œufs", color: "#3E8FB0" },
-    { id: "r4", name: "Boucherie et poissonnerie", color: "#C1483D" },
-    { id: "r5", name: "Épicerie salée", color: "#C99A2E" },
-    { id: "r6", name: "Épicerie sucrée", color: "#C9598A" },
-    { id: "r7", name: "Surgelés", color: "#2F9E9E" },
-    { id: "r8", name: "Boissons", color: "#7A5CB0" },
-    { id: "r9", name: "Hygiène et beauté", color: "#A25B8C" },
-    { id: "r10", name: "Entretien et maison", color: "#5C7A8A" }
+    { id: "r1", name: "Boissons", color: "#7A5CB0" },
+    { id: "r2", name: "Hygiène et beauté", color: "#A25B8C" },
+    { id: "r3", name: "Entretien et maison", color: "#5C7A8A" },
+    { id: "r4", name: "Boulangerie", color: "#B9873B" },
+    { id: "r5", name: "Épicerie sucrée", color: "#C9598A" },
+    { id: "r6", name: "Épicerie salée", color: "#C99A2E" },
+    { id: "r7", name: "Conserves", color: "#8B5E3C" },
+    { id: "r8", name: "Crèmerie et œufs", color: "#3E8FB0" },
+    { id: "r9", name: "Surgelés", color: "#2F9E9E" },
+    { id: "r10", name: "Produits frais", color: "#4A8B6B" },
+    { id: "r11", name: "Boucherie et poissonnerie", color: "#C1483D" },
+    { id: "r12", name: "Fruits et légumes", color: "#3C8B5C" }
   ];
 
   var DEFAULT_CATALOG = [
-    { id: "p1", name: "Bananes", rayonId: "r1" },
-    { id: "p2", name: "Tomates", rayonId: "r1" },
-    { id: "p3", name: "Salade", rayonId: "r1" },
-    { id: "p4", name: "Pommes", rayonId: "r1" },
-    { id: "p5", name: "Baguette", rayonId: "r2" },
-    { id: "p6", name: "Pain de mie", rayonId: "r2" },
-    { id: "p7", name: "Lait", rayonId: "r3" },
-    { id: "p8", name: "Œufs", rayonId: "r3" },
-    { id: "p9", name: "Beurre", rayonId: "r3" },
-    { id: "p10", name: "Yaourts nature", rayonId: "r3" },
-    { id: "p11", name: "Poulet", rayonId: "r4" },
-    { id: "p12", name: "Steak haché", rayonId: "r4" },
-    { id: "p13", name: "Pâtes", rayonId: "r5" },
-    { id: "p14", name: "Riz", rayonId: "r5" },
-    { id: "p15", name: "Huile d'olive", rayonId: "r5" },
-    { id: "p16", name: "Chocolat", rayonId: "r6" },
-    { id: "p17", name: "Confiture", rayonId: "r6" },
-    { id: "p18", name: "Légumes surgelés", rayonId: "r7" },
-    { id: "p19", name: "Glace", rayonId: "r7" },
-    { id: "p20", name: "Eau", rayonId: "r8" },
-    { id: "p21", name: "Jus d'orange", rayonId: "r8" },
-    { id: "p22", name: "Dentifrice", rayonId: "r9" },
-    { id: "p23", name: "Liquide vaisselle", rayonId: "r10" },
-    { id: "p24", name: "Papier toilette", rayonId: "r10" }
+    { id: "p1", name: "Eau", rayonId: "r1" },
+    { id: "p2", name: "petites bouteille d'eau", rayonId: "r1" },
+    { id: "p3", name: "eau pétillante", rayonId: "r1" },
+    { id: "p4", name: "jus de pomme", rayonId: "r1" },
+    { id: "p5", name: "jus de pamplemousse", rayonId: "r1" },
+    { id: "p6", name: "Fuzztea", rayonId: "r1" },
+    { id: "p7", name: "Cotons tige", rayonId: "r2" },
+    { id: "p8", name: "Cotons démaquillants", rayonId: "r2" },
+    { id: "p9", name: "dentifrice Gaëlle", rayonId: "r2" },
+    { id: "p10", name: "dentifrice gars", rayonId: "r2" },
+    { id: "p11", name: "shampoing Gaelle", rayonId: "r2" },
+    { id: "p12", name: "après-shampoing", rayonId: "r2" },
+    { id: "p13", name: "shampoing gars", rayonId: "r2" },
+    { id: "p14", name: "gel douche", rayonId: "r2" },
+    { id: "p15", name: "déo gars", rayonId: "r2" },
+    { id: "p16", name: "brosses à dents", rayonId: "r2" },
+    { id: "p17", name: "mousse à raser", rayonId: "r2" },
+    { id: "p18", name: "crème visage Greg", rayonId: "r2" },
+    { id: "p19", name: "mouchoirs (boite)", rayonId: "r2" },
+    { id: "p20", name: "mouchoirs (paquets)", rayonId: "r2" },
+    { id: "p21", name: "papier toilette", rayonId: "r2" },
+    { id: "p22", name: "sopalain", rayonId: "r3" },
+    { id: "p23", name: "liquide vaisselle", rayonId: "r3" },
+    { id: "p24", name: "Gel nettoyant WC", rayonId: "r3" },
+    { id: "p25", name: "Lessive", rayonId: "r3" },
+    { id: "p26", name: "Ajax", rayonId: "r3" },
+    { id: "p27", name: "papier alu", rayonId: "r3" },
+    { id: "p28", name: "papier sulfu", rayonId: "r3" },
+    { id: "p29", name: "film micro-ondes", rayonId: "r3" },
+    { id: "p30", name: "sacs poubelles", rayonId: "r3" },
+    { id: "p31", name: "Levure de boulanger", rayonId: "r4" },
+    { id: "p32", name: "Pain", rayonId: "r4" },
+    { id: "p33", name: "pain Harris", rayonId: "r4" },
+    { id: "p34", name: "Paninis", rayonId: "r4" },
+    { id: "p35", name: "Chocolat", rayonId: "r5" },
+    { id: "p36", name: "Confiture", rayonId: "r5" },
+    { id: "p37", name: "Nutella", rayonId: "r5" },
+    { id: "p38", name: "Café Ouin-Ouin", rayonId: "r5" },
+    { id: "p39", name: "café capsules", rayonId: "r5" },
+    { id: "p40", name: "Céréales p'tit déj", rayonId: "r5" },
+    { id: "p41", name: "gâteaux secs", rayonId: "r5" },
+    { id: "p42", name: "BN", rayonId: "r5" },
+    { id: "p43", name: "Pâtes", rayonId: "r6" },
+    { id: "p44", name: "Riz", rayonId: "r6" },
+    { id: "p45", name: "Huile d'olive", rayonId: "r6" },
+    { id: "p46", name: "Ebli", rayonId: "r6" },
+    { id: "p47", name: "Semoule parfumée", rayonId: "r6" },
+    { id: "p48", name: "Ketchup", rayonId: "r6" },
+    { id: "p49", name: "Mayonnaise", rayonId: "r6" },
+    { id: "p50", name: "Moutarde", rayonId: "r6" },
+    { id: "p51", name: "Cornichons", rayonId: "r6" },
+    { id: "p52", name: "Mexicain (tortillas, enchilladas,...)", rayonId: "r6" },
+    { id: "p53", name: "Sauce bolognaise", rayonId: "r6" },
+    { id: "p54", name: "pesto", rayonId: "r6" },
+    { id: "p55", name: "Haricots verts", rayonId: "r7" },
+    { id: "p56", name: "Maïs", rayonId: "r7" },
+    { id: "p57", name: "champignons de Paris", rayonId: "r7" },
+    { id: "p58", name: "Ratatouille", rayonId: "r7" },
+    { id: "p59", name: "Thon", rayonId: "r7" },
+    { id: "p60", name: "Lentilles cuisinées", rayonId: "r7" },
+    { id: "p61", name: "raviolis bolognaise", rayonId: "r7" },
+    { id: "p62", name: "Lait", rayonId: "r8" },
+    { id: "p63", name: "Œufs", rayonId: "r8" },
+    { id: "p64", name: "Beurre", rayonId: "r8" },
+    { id: "p65", name: "Yaourts nature", rayonId: "r8" },
+    { id: "p66", name: "Mousses liégeois", rayonId: "r8" },
+    { id: "p67", name: "Yaourts aux fruits", rayonId: "r8" },
+    { id: "p68", name: "Gruyère râpé", rayonId: "r8" },
+    { id: "p69", name: "Légumes surgelés", rayonId: "r9" },
+    { id: "p70", name: "Poissons panés", rayonId: "r9" },
+    { id: "p71", name: "Fish & Chips", rayonId: "r9" },
+    { id: "p72", name: "Frites", rayonId: "r9" },
+    { id: "p73", name: "légumes surgelés", rayonId: "r9" },
+    { id: "p74", name: "Glaces", rayonId: "r9" },
+    { id: "p75", name: "Flammekueche", rayonId: "r10" },
+    { id: "p76", name: "Lardons (émincés)", rayonId: "r10" },
+    { id: "p77", name: "Poulet", rayonId: "r11" },
+    { id: "p78", name: "Steak haché", rayonId: "r11" },
+    { id: "p79", name: "Jambon", rayonId: "r11" },
+    { id: "p80", name: "Bananes", rayonId: "r12" },
+    { id: "p81", name: "Tomates", rayonId: "r12" },
+    { id: "p82", name: "Salade", rayonId: "r12" },
+    { id: "p83", name: "Pommes", rayonId: "r12" },
+    { id: "p84", name: "salade", rayonId: "r12" }
   ];
 
-  var PALETTE = ["#3C8B5C", "#B9873B", "#3E8FB0", "#C1483D", "#C99A2E", "#C9598A", "#2F9E9E", "#7A5CB0", "#A25B8C", "#5C7A8A"];
+  var PALETTE = ["#3C8B5C", "#B9873B", "#3E8FB0", "#C1483D", "#C99A2E", "#C9598A", "#2F9E9E", "#7A5CB0", "#A25B8C", "#5C7A8A", "#8B5E3C", "#4A8B6B"];
   var STORAGE_KEY = "shopping-app:data";
 
   /* ---------- Couche de stockage : window.storage (artefact Claude, partagé)
@@ -136,7 +199,8 @@
     notesOpen: false,
     confirmReset: false,
     archiveMsg: "",
-    importMsg: "",
+    toastMsg: "",
+    confirmDeleteRayon: null,
     openArchiveId: null,
     error: "",
     loaded: false
@@ -212,6 +276,29 @@
     URL.revokeObjectURL(url);
   }
 
+  function shareOrDownloadHtml(filename, htmlString, shareTitle) {
+    var blob = new Blob([htmlString], { type: "text/html;charset=utf-8" });
+    var canTryShare = false;
+    var file = null;
+    if (window.isSecureContext !== false && navigator.share && navigator.canShare) {
+      try {
+        file = new File([blob], filename, { type: "text/html" });
+        canTryShare = navigator.canShare({ files: [file] });
+      } catch (e) {
+        canTryShare = false;
+      }
+    }
+    if (canTryShare) {
+      navigator.share({ files: [file], title: shareTitle || filename }).catch(function (err) {
+        if (!err || err.name !== "AbortError") {
+          downloadHtmlFile(filename, htmlString);
+        }
+      });
+    } else {
+      downloadHtmlFile(filename, htmlString);
+    }
+  }
+
   function exportList() {
     var listItems = getListItems();
     if (listItems.length === 0) return;
@@ -226,7 +313,7 @@
     var now = new Date();
     var dateLabel = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
     var html = buildExportHtml("Ma liste de courses", dateLabel, groups, state.listNote);
-    downloadHtmlFile("liste-de-courses-" + now.toISOString().slice(0, 10) + ".html", html);
+    shareOrDownloadHtml("liste-de-courses-" + now.toISOString().slice(0, 10) + ".html", html, "Ma liste de courses");
   }
 
   function exportArchive(a) {
@@ -248,7 +335,7 @@
     }
     var groups = names.map(function (n) { return { name: n || "Autre", color: colorFor(n), items: byName[n] }; });
     var html = buildExportHtml("Liste de courses archivée", dateLabel, groups, a.note);
-    downloadHtmlFile("liste-de-courses-" + a.date.slice(0, 10) + ".html", html);
+    shareOrDownloadHtml("liste-de-courses-" + a.date.slice(0, 10) + ".html", html, "Liste de courses archivée");
   }
 
   /* ---------- Import d'une liste reçue ---------- */
@@ -257,10 +344,10 @@
     if (inp) inp.click();
   }
 
-  function showImportMsg(msg) {
-    ui.importMsg = msg;
+  function showToast(msg) {
+    ui.toastMsg = msg;
     render();
-    setTimeout(function () { ui.importMsg = ""; render(); }, 3000);
+    setTimeout(function () { ui.toastMsg = ""; render(); }, 3000);
   }
 
   function handleImportFile(e) {
@@ -272,19 +359,19 @@
       var text = String(ev.target.result || "");
       var m = text.match(/<script type="application\/json" id="shopping-list-data">([\s\S]*?)<\/script>/);
       if (!m) {
-        showImportMsg("Ce fichier n'est pas une liste exportée reconnue.");
+        showToast("Ce fichier n'est pas une liste exportée reconnue.");
         return;
       }
       var data;
       try {
         data = JSON.parse(m[1]);
       } catch (err) {
-        showImportMsg("Le fichier importé est invalide.");
+        showToast("Le fichier importé est invalide.");
         return;
       }
       mergeImportedData(data);
     };
-    reader.onerror = function () { showImportMsg("Impossible de lire le fichier."); };
+    reader.onerror = function () { showToast("Impossible de lire le fichier."); };
     reader.readAsText(file);
   }
 
@@ -320,7 +407,7 @@
     scheduleSave();
     ui.tab = "liste";
     render();
-    showImportMsg(added > 0 ? (added + " article(s) importé(s) dans ta liste !") : "Liste importée (déjà à jour).");
+    showToast(added > 0 ? (added + " article(s) importé(s) dans ta liste !") : "Liste importée (déjà à jour).");
   }
 
   /* ---------- Persistance ---------- */
@@ -439,6 +526,49 @@
     render();
   }
 
+  function renameRayon(id, name) {
+    var r = rayonById(id);
+    if (r) r.name = name;
+    scheduleSave();
+  }
+
+  function updateRayonColor(id, color) {
+    var r = rayonById(id);
+    if (r) r.color = color;
+    scheduleSave();
+    render();
+  }
+
+  function deleteRayon(id) {
+    state.rayons = state.rayons.filter(function (r) { return r.id !== id; });
+    ui.confirmDeleteRayon = null;
+    scheduleSave();
+    render();
+  }
+
+  function changeProductRayon(productId, rayonId) {
+    var p = state.catalog.find(function (p) { return p.id === productId; });
+    if (p) p.rayonId = rayonId;
+    scheduleSave();
+    render();
+  }
+
+  function moveProduct(productId, dir) {
+    var product = state.catalog.find(function (p) { return p.id === productId; });
+    if (!product) return;
+    var siblings = [];
+    state.catalog.forEach(function (p, idx) { if (p.rayonId === product.rayonId) siblings.push(idx); });
+    var pos = siblings.indexOf(state.catalog.indexOf(product));
+    var targetPos = pos + dir;
+    if (targetPos < 0 || targetPos >= siblings.length) return;
+    var idxA = siblings[pos], idxB = siblings[targetPos];
+    var tmp = state.catalog[idxA];
+    state.catalog[idxA] = state.catalog[idxB];
+    state.catalog[idxB] = tmp;
+    scheduleSave();
+    render();
+  }
+
   function submitNewProduct() {
     var nameInput = document.getElementById("newProductName");
     var name = nameInput ? nameInput.value.trim() : "";
@@ -530,8 +660,8 @@
       '<button data-action="import-list" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';margin-bottom:' + (compact ? 8 : 14) + 'px;background:#fff;color:#1E4632;border:1px dashed #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
       icon("upload", compact ? 13 : 15) + "Importer une liste reçue</button>";
 
-    if (ui.importMsg) {
-      html += '<div style="background:#1E4632;color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;text-align:center;">' + esc(ui.importMsg) + "</div>";
+    if (ui.toastMsg) {
+      html += '<div style="background:#1E4632;color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;text-align:center;">' + esc(ui.toastMsg) + "</div>";
     }
 
     if (total > 0) {
@@ -539,7 +669,7 @@
         '<button data-action="archive-list" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
         icon("archive", compact ? 13 : 15) + (compact ? "" : "Archiver") + "</button>" +
         '<button data-action="export-list" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
-        icon("download", compact ? 13 : 15) + (compact ? "" : "Exporter") + "</button>" +
+        icon("share", compact ? 13 : 15) + (compact ? "" : "Partager") + "</button>" +
         '<button data-action="confirm-reset-open" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#C1483D;border:1px solid #C1483D;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
         icon("rotateCcw", compact ? 13 : 15) + (compact ? "" : "Réinitialiser") + "</button>" +
         "</div>";
@@ -619,6 +749,10 @@
       '<button data-action="toggle-manage" style="padding:10px 12px;background:' + (manage ? "#1E4632" : "#fff") + ";color:" + (manage ? "#fff" : "#1E4632") + ';border:1px solid #1E4632;border-radius:8px;cursor:pointer;">' +
       icon("settings", 16) + "</button></div>";
 
+    if (ui.toastMsg) {
+      html += '<div style="background:#1E4632;color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;text-align:center;">' + esc(ui.toastMsg) + "</div>";
+    }
+
     if (ui.showAdd) {
       html += '<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:16px;">' +
         '<input id="newProductName" placeholder="Nom du produit" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;" />';
@@ -639,27 +773,45 @@
 
     catalogByRayon.forEach(function (g) {
       var rIndex = state.rayons.findIndex(function (r) { return r.id === g.rayon.id; });
-      html += '<section style="margin-bottom:16px;"><div style="display:flex;align-items:center;gap:6px;"><div style="flex:1;">' + rayonTag(g.rayon, false) + "</div>";
+      html += '<section style="margin-bottom:16px;">';
       if (manage) {
-        html += '<div style="display:flex;gap:2px;">' +
-          '<button data-action="move-rayon" data-index="' + rIndex + '" data-dir="-1" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronUp", 16) + "</button>" +
-          '<button data-action="move-rayon" data-index="' + rIndex + '" data-dir="1" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronDown", 16) + "</button>" +
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+          '<input data-rayon-name-id="' + g.rayon.id + '" value="' + esc(g.rayon.name) + '" style="flex:1;min-width:0;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:13px;" />' +
+          '<input type="color" data-rayon-color-id="' + g.rayon.id + '" value="' + g.rayon.color + '" style="width:32px;height:30px;padding:1px;border-radius:6px;border:1px solid #D6DBD0;cursor:pointer;flex-shrink:0;" />' +
+          '<button data-action="move-rayon" data-index="' + rIndex + '" data-dir="-1" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronUp", 16) + "</button>" +
+          '<button data-action="move-rayon" data-index="' + rIndex + '" data-dir="1" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronDown", 16) + "</button>" +
+          '<button data-action="delete-rayon" data-id="' + g.rayon.id + '" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</button>" +
           "</div>";
+        if (ui.confirmDeleteRayon === g.rayon.id) {
+          html += '<div style="background:#fff;border:1px solid #C1483D;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;">' +
+            "Supprimer le rayon \u00ab " + esc(g.rayon.name) + " \u00bb ?" +
+            '<div style="display:flex;gap:8px;margin-top:8px;">' +
+            '<button data-action="confirm-delete-rayon-yes" data-id="' + g.rayon.id + '" style="flex:1;padding:6px 10px;background:#C1483D;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Confirmer</button>' +
+            '<button data-action="confirm-delete-rayon-no" style="padding:6px 12px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:6px;font-size:13px;cursor:pointer;">Annuler</button>' +
+            "</div></div>";
+        }
+      } else {
+        html += '<div style="margin-bottom:6px;">' + rayonTag(g.rayon, false) + "</div>";
       }
-      html += "</div>" + '<div style="background:#fff;border-radius:10px;overflow:hidden;margin-top:6px;">';
+      html += '<div style="background:#fff;border-radius:10px;overflow:hidden;">';
       if (g.items.length === 0) {
         html += '<div style="padding:12px 14px;font-size:13px;color:#94998f;">Aucun produit</div>';
       }
       g.items.forEach(function (p, idx) {
         var active = !!inListIds[p.id];
-        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px 10px 14px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:10px 8px 10px 14px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
           '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:15px;padding:0;">' +
           '<span style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (active ? "#1E4632" : "#F1F4EE") + ";color:" + (active ? "#fff" : "#1E4632") + ";border:" + (active ? "none" : "1px solid #D6DBD0") + ';">' +
           icon(active ? "check" : "plus", 13) + "</span>" +
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.name) + "</span></button>" +
-          '<input data-note-id="' + p.id + '" value="' + esc(state.notes[p.id] || "") + '" placeholder="qté, réf…" style="width:84px;flex-shrink:0;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid #E3E7DD;color:#4b5a52;" />';
+          '<input data-note-id="' + p.id + '" value="' + esc(state.notes[p.id] || "") + '" placeholder="qté, réf…" style="width:' + (manage ? 64 : 84) + 'px;flex-shrink:0;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid #E3E7DD;color:#4b5a52;" />';
         if (manage) {
-          html += '<button data-action="delete-product" data-id="' + p.id + '" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</button>";
+          html += '<select data-product-rayon-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
+            state.rayons.map(function (r) { return '<option value="' + r.id + '"' + (r.id === p.rayonId ? " selected" : "") + ">" + esc(r.name) + "</option>"; }).join("") +
+            "</select>" +
+            '<button data-action="move-product" data-id="' + p.id + '" data-dir="-1" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronUp", 14) + "</button>" +
+            '<button data-action="move-product" data-id="' + p.id + '" data-dir="1" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronDown", 14) + "</button>" +
+            '<button data-action="delete-product" data-id="' + p.id + '" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 14, "#C1483D") + "</button>";
         }
         html += "</div>";
       });
@@ -682,7 +834,7 @@
         '<button data-action="toggle-archive" data-id="' + a.id + '" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:transparent;border:none;text-align:left;cursor:pointer;">' +
         '<div><div style="font-size:14px;font-weight:600;">' + esc(dateLabel) + '</div><div style="font-size:12px;color:#5f6b62;">' + a.items.length + " article" + (a.items.length > 1 ? "s" : "") + "</div></div>" +
         '<div style="display:flex;align-items:center;gap:6px;">' +
-        '<span data-action="export-archive" data-id="' + a.id + '" role="button" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("download", 15, "#1E4632") + "</span>" +
+        '<span data-action="export-archive" data-id="' + a.id + '" role="button" aria-label="Partager cette liste" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("share", 15, "#1E4632") + "</span>" +
         '<span data-action="delete-archive" data-id="' + a.id + '" role="button" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</span>" +
         icon(open ? "chevronUp" : "chevronDown", 16) +
         "</div></button>";
@@ -761,6 +913,25 @@
       case "toggle-in-list": toggleInList(id); break;
       case "delete-product": deleteProduct(id); break;
       case "move-rayon": moveRayon(parseInt(el.getAttribute("data-index"), 10), parseInt(el.getAttribute("data-dir"), 10)); break;
+      case "move-product": moveProduct(id, parseInt(el.getAttribute("data-dir"), 10)); break;
+      case "delete-rayon":
+        if (ui.confirmDeleteRayon === id) {
+          ui.confirmDeleteRayon = null;
+          render();
+        } else {
+          var hasProducts = state.catalog.some(function (p) { return p.rayonId === id; });
+          if (hasProducts) {
+            showToast("Déplace ou supprime d'abord les produits de ce rayon avant de le supprimer.");
+          } else if (state.rayons.length <= 1) {
+            showToast("Il doit rester au moins un rayon.");
+          } else {
+            ui.confirmDeleteRayon = id;
+            render();
+          }
+        }
+        break;
+      case "confirm-delete-rayon-yes": deleteRayon(id); break;
+      case "confirm-delete-rayon-no": ui.confirmDeleteRayon = null; render(); break;
       case "set-tab": ui.tab = el.getAttribute("data-tab"); ui.showAdd = false; render(); break;
       case "toggle-manage": ui.manage = !ui.manage; render(); break;
       case "toggle-show-add": ui.showAdd = !ui.showAdd; ui.addingRayon = false; render(); break;
@@ -793,12 +964,19 @@
     } else if (t.id === "listNoteInput") {
       state.listNote = t.value;
       scheduleSave();
+    } else if (t.hasAttribute("data-rayon-name-id")) {
+      renameRayon(t.getAttribute("data-rayon-name-id"), t.value);
     }
   }
 
   function handleChange(e) {
-    if (e.target && e.target.id === "importFileInput") {
+    var t = e.target;
+    if (t.id === "importFileInput") {
       handleImportFile(e);
+    } else if (t.hasAttribute("data-rayon-color-id")) {
+      updateRayonColor(t.getAttribute("data-rayon-color-id"), t.value);
+    } else if (t.hasAttribute("data-product-rayon-id")) {
+      changeProductRayon(t.getAttribute("data-product-rayon-id"), t.value);
     }
   }
 
