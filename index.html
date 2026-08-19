@@ -154,6 +154,7 @@
 
   var PALETTE = ["#3C8B5C", "#B9873B", "#3E8FB0", "#C1483D", "#C99A2E", "#C9598A", "#2F9E9E", "#7A5CB0", "#A25B8C", "#5C7A8A", "#8B5E3C", "#4A8B6B"];
   var STORAGE_KEY = "shopping-app:data";
+  var CATALOG_VERSION = 2;
 
   /* ---------- Couche de stockage : window.storage (artefact Claude, partagé)
      avec repli automatique sur localStorage (navigateur classique, local à cet appareil) ---------- */
@@ -187,7 +188,8 @@
     list: [],
     notes: {},
     listNote: "",
-    archives: []
+    archives: [],
+    catalogVersion: CATALOG_VERSION
   };
   var ui = {
     tab: "liste",
@@ -411,6 +413,23 @@
   }
 
   /* ---------- Persistance ---------- */
+  function mergeMissingDefaults() {
+    var defaultRayonById = {};
+    DEFAULT_RAYONS.forEach(function (r) { defaultRayonById[r.id] = r; });
+    DEFAULT_RAYONS.forEach(function (dr) {
+      var exists = state.rayons.some(function (r) { return r.name.toLowerCase() === dr.name.toLowerCase(); });
+      if (!exists) state.rayons.push({ id: uid("r"), name: dr.name, color: dr.color });
+    });
+    DEFAULT_CATALOG.forEach(function (dp) {
+      var dRayon = defaultRayonById[dp.rayonId];
+      if (!dRayon) return;
+      var rayon = state.rayons.find(function (r) { return r.name.toLowerCase() === dRayon.name.toLowerCase(); });
+      if (!rayon) return;
+      var exists = state.catalog.some(function (p) { return p.rayonId === rayon.id && p.name.toLowerCase() === dp.name.toLowerCase(); });
+      if (!exists) state.catalog.push({ id: uid("p"), name: dp.name, rayonId: rayon.id });
+    });
+  }
+
   function load() {
     storage.get(STORAGE_KEY).then(function (res) {
       if (res && res.value) {
@@ -428,9 +447,15 @@
           }
           if (typeof parsed.listNote === "string") state.listNote = parsed.listNote;
           if (parsed.archives) state.archives = parsed.archives;
+          state.catalogVersion = typeof parsed.catalogVersion === "number" ? parsed.catalogVersion : 0;
         } catch (e) { /* données absentes ou invalides, on garde les valeurs par défaut */ }
       }
     }).catch(function () { /* pas de données existantes */ }).finally(function () {
+      if ((state.catalogVersion || 0) < CATALOG_VERSION) {
+        mergeMissingDefaults();
+        state.catalogVersion = CATALOG_VERSION;
+        scheduleSave();
+      }
       ui.loaded = true;
       render();
     });
