@@ -51,142 +51,142 @@
 
   /* ---------- Données par défaut ---------- */
   var DEFAULT_RAYONS = [
-    { id: "r1", name: "Boissons", color: "#7A5CB0" },
+    { id: "r1", name: "Boissons", color: "#2cdaf2" },
     { id: "r2", name: "Hygiène et beauté", color: "#A25B8C" },
     { id: "r3", name: "Entretien et maison", color: "#5C7A8A" },
-    { id: "r4", name: "Boulangerie", color: "#B9873B" },
+    { id: "r4", name: "Boulangerie", color: "#f2df18" },
     { id: "r5", name: "Épicerie sucrée", color: "#C9598A" },
     { id: "r6", name: "Épicerie salée", color: "#C99A2E" },
-    { id: "r7", name: "Conserves", color: "#8B5E3C" },
+    { id: "r7", name: "Conserves", color: "#a3a0ab" },
     { id: "r8", name: "Crèmerie et œufs", color: "#3E8FB0" },
     { id: "r9", name: "Surgelés", color: "#2F9E9E" },
-    { id: "r10", name: "Produits frais", color: "#4A8B6B" },
+    { id: "r10", name: "Produits frais", color: "#ff5cd3" },
     { id: "r11", name: "Boucherie / Charcuterie", color: "#C1483D" },
-    { id: "r12", name: "Poissonnerie", color: "#2C6E8A" },
+    { id: "r12", name: "Poissonnerie", color: "#0097f5" },
     { id: "r13", name: "Fruits et légumes", color: "#3C8B5C" },
-    { id: "r14", name: "DIVERS", color: "#8A7F6B" }
+    { id: "r14", name: "DIVERS", color: "#000000" }
   ];
 
   var DEFAULT_CATALOG = [
-    { id: "p1", name: "Eau", rayonId: "r1" },
-    { id: "p2", name: "petites bouteille d'eau", rayonId: "r1" },
-    { id: "p3", name: "jus de pamplemousse", rayonId: "r1" },
-    { id: "p4", name: "eau pétillante", rayonId: "r1" },
-    { id: "p5", name: "jus de pomme", rayonId: "r1" },
-    { id: "p6", name: "Fuzztea", rayonId: "r1" },
-    { id: "p7", name: "bière", rayonId: "r1" },
-    { id: "p8", name: "cidre", rayonId: "r1" },
-    { id: "p9", name: "vin", rayonId: "r1" },
-    { id: "p10", name: "gâteaux apéro", rayonId: "r1" },
-    { id: "p11", name: "Cotons tige", rayonId: "r2" },
-    { id: "p12", name: "Cotons démaquillants", rayonId: "r2" },
-    { id: "p13", name: "dentifrice Gaëlle", rayonId: "r2" },
-    { id: "p14", name: "dentifrice gars", rayonId: "r2" },
-    { id: "p15", name: "brosses à dents", rayonId: "r2" },
-    { id: "p16", name: "shampoing Gaelle", rayonId: "r2" },
-    { id: "p17", name: "après-shampoing", rayonId: "r2" },
-    { id: "p18", name: "shampoing gars", rayonId: "r2" },
-    { id: "p19", name: "gel douche", rayonId: "r2" },
+    { id: "p1", name: "gâteaux apéro", rayonId: "r1" },
+    { id: "p2", name: "vin", rayonId: "r1" },
+    { id: "p3", name: "cidre", rayonId: "r1" },
+    { id: "p4", name: "bière", rayonId: "r1" },
+    { id: "p5", name: "Fuzztea", rayonId: "r1" },
+    { id: "p6", name: "jus de pomme", rayonId: "r1" },
+    { id: "p7", name: "eau pétillante", rayonId: "r1" },
+    { id: "p8", name: "jus de pamplemousse", rayonId: "r1" },
+    { id: "p9", name: "petites bouteille d'eau", rayonId: "r1" },
+    { id: "p10", name: "Eau", rayonId: "r1" },
+    { id: "p11", name: "gel cheveux", rayonId: "r2" },
+    { id: "p12", name: "laque", rayonId: "r2" },
+    { id: "p13", name: "crème pieds", rayonId: "r2" },
+    { id: "p14", name: "crème mains", rayonId: "r2" },
+    { id: "p15", name: "papier toilette", rayonId: "r2" },
+    { id: "p16", name: "mouchoirs (paquets)", rayonId: "r2" },
+    { id: "p17", name: "mouchoirs (boite)", rayonId: "r2" },
+    { id: "p18", name: "crème visage Greg", rayonId: "r2" },
+    { id: "p19", name: "mousse à raser", rayonId: "r2" },
     { id: "p20", name: "déo gars", rayonId: "r2" },
-    { id: "p21", name: "mousse à raser", rayonId: "r2" },
-    { id: "p22", name: "crème visage Greg", rayonId: "r2" },
-    { id: "p23", name: "mouchoirs (boite)", rayonId: "r2" },
-    { id: "p24", name: "mouchoirs (paquets)", rayonId: "r2" },
-    { id: "p25", name: "papier toilette", rayonId: "r2" },
-    { id: "p26", name: "crème mains", rayonId: "r2" },
-    { id: "p27", name: "crème pieds", rayonId: "r2" },
-    { id: "p28", name: "laque", rayonId: "r2" },
-    { id: "p29", name: "gel cheveux", rayonId: "r2" },
-    { id: "p30", name: "sopalain", rayonId: "r3" },
-    { id: "p31", name: "liquide vaisselle", rayonId: "r3" },
-    { id: "p32", name: "Lessive", rayonId: "r3" },
-    { id: "p33", name: "Gel nettoyant WC", rayonId: "r3" },
-    { id: "p34", name: "Ajax", rayonId: "r3" },
-    { id: "p35", name: "papier alu", rayonId: "r3" },
-    { id: "p36", name: "film micro-ondes", rayonId: "r3" },
-    { id: "p37", name: "papier sulfu", rayonId: "r3" },
-    { id: "p38", name: "K2R", rayonId: "r3" },
-    { id: "p39", name: "Génie sans frotter", rayonId: "r3" },
-    { id: "p40", name: "sac poubelle salle de bain", rayonId: "r3" },
-    { id: "p41", name: "sac poubelle cuisine", rayonId: "r3" },
-    { id: "p42", name: "Levure de boulanger", rayonId: "r4" },
-    { id: "p43", name: "Pain", rayonId: "r4" },
-    { id: "p44", name: "pain Harris", rayonId: "r4" },
-    { id: "p45", name: "Paninis", rayonId: "r4" },
-    { id: "p46", name: "Chocolat", rayonId: "r5" },
-    { id: "p47", name: "Confiture", rayonId: "r5" },
-    { id: "p48", name: "Nutella", rayonId: "r5" },
-    { id: "p49", name: "Café Ouin-Ouin", rayonId: "r5" },
-    { id: "p50", name: "café capsules", rayonId: "r5" },
-    { id: "p51", name: "gâteaux secs", rayonId: "r5" },
-    { id: "p52", name: "BN", rayonId: "r5" },
-    { id: "p53", name: "Céréales p'tit déj", rayonId: "r5" },
-    { id: "p54", name: "biscottes", rayonId: "r5" },
-    { id: "p55", name: "thé", rayonId: "r5" },
-    { id: "p56", name: "Pâtes", rayonId: "r6" },
-    { id: "p57", name: "Riz", rayonId: "r6" },
-    { id: "p58", name: "soupe", rayonId: "r6" },
-    { id: "p59", name: "Ebli", rayonId: "r6" },
-    { id: "p60", name: "Semoule parfumée", rayonId: "r6" },
-    { id: "p61", name: "spaghettis", rayonId: "r6" },
+    { id: "p21", name: "gel douche", rayonId: "r2" },
+    { id: "p22", name: "shampoing gars", rayonId: "r2" },
+    { id: "p23", name: "après-shampoing", rayonId: "r2" },
+    { id: "p24", name: "shampoing Gaelle", rayonId: "r2" },
+    { id: "p25", name: "brosses à dents", rayonId: "r2" },
+    { id: "p26", name: "dentifrice gars", rayonId: "r2" },
+    { id: "p27", name: "dentifrice Gaëlle", rayonId: "r2" },
+    { id: "p28", name: "Cotons démaquillants", rayonId: "r2" },
+    { id: "p29", name: "Cotons tige", rayonId: "r2" },
+    { id: "p30", name: "sac poubelle cuisine", rayonId: "r3" },
+    { id: "p31", name: "sac poubelle salle de bain", rayonId: "r3" },
+    { id: "p32", name: "Génie sans frotter", rayonId: "r3" },
+    { id: "p33", name: "K2R", rayonId: "r3" },
+    { id: "p34", name: "papier sulfu", rayonId: "r3" },
+    { id: "p35", name: "film micro-ondes", rayonId: "r3" },
+    { id: "p36", name: "papier alu", rayonId: "r3" },
+    { id: "p37", name: "Gel nettoyant WC", rayonId: "r3" },
+    { id: "p38", name: "Ajax", rayonId: "r3" },
+    { id: "p39", name: "Lessive", rayonId: "r3" },
+    { id: "p40", name: "sopalain", rayonId: "r3" },
+    { id: "p41", name: "liquide vaisselle", rayonId: "r3" },
+    { id: "p42", name: "Paninis", rayonId: "r4" },
+    { id: "p43", name: "pain Harris", rayonId: "r4" },
+    { id: "p44", name: "Pain", rayonId: "r4" },
+    { id: "p45", name: "Levure de boulanger", rayonId: "r4" },
+    { id: "p46", name: "thé", rayonId: "r5" },
+    { id: "p47", name: "biscottes", rayonId: "r5" },
+    { id: "p48", name: "Céréales p'tit déj", rayonId: "r5" },
+    { id: "p49", name: "BN", rayonId: "r5" },
+    { id: "p50", name: "gâteaux secs", rayonId: "r5" },
+    { id: "p51", name: "café capsules", rayonId: "r5" },
+    { id: "p52", name: "Café Ouin-Ouin", rayonId: "r5" },
+    { id: "p53", name: "Nutella", rayonId: "r5" },
+    { id: "p54", name: "Confiture", rayonId: "r5" },
+    { id: "p55", name: "Chocolat", rayonId: "r5" },
+    { id: "p56", name: "Mexicain (tortillas, enchilladas,...)", rayonId: "r6" },
+    { id: "p57", name: "pesto", rayonId: "r6" },
+    { id: "p58", name: "Sauce bolognaise", rayonId: "r6" },
+    { id: "p59", name: "Cornichons", rayonId: "r6" },
+    { id: "p60", name: "Moutarde", rayonId: "r6" },
+    { id: "p61", name: "Mayonnaise", rayonId: "r6" },
     { id: "p62", name: "Ketchup", rayonId: "r6" },
-    { id: "p63", name: "Mayonnaise", rayonId: "r6" },
-    { id: "p64", name: "Moutarde", rayonId: "r6" },
-    { id: "p65", name: "Cornichons", rayonId: "r6" },
-    { id: "p66", name: "Sauce bolognaise", rayonId: "r6" },
-    { id: "p67", name: "pesto", rayonId: "r6" },
-    { id: "p68", name: "Mexicain (tortillas, enchilladas,...)", rayonId: "r6" },
-    { id: "p69", name: "Thon", rayonId: "r7" },
-    { id: "p70", name: "Maïs", rayonId: "r7" },
-    { id: "p71", name: "Ratatouille", rayonId: "r7" },
-    { id: "p72", name: "Haricots verts", rayonId: "r7" },
+    { id: "p63", name: "spaghettis", rayonId: "r6" },
+    { id: "p64", name: "Semoule parfumée", rayonId: "r6" },
+    { id: "p65", name: "Ebli", rayonId: "r6" },
+    { id: "p66", name: "soupe", rayonId: "r6" },
+    { id: "p67", name: "Riz", rayonId: "r6" },
+    { id: "p68", name: "Pâtes", rayonId: "r6" },
+    { id: "p69", name: "huile d'olive", rayonId: "r7" },
+    { id: "p70", name: "raviolis bolognaise", rayonId: "r7" },
+    { id: "p71", name: "petits pois - carottes", rayonId: "r7" },
+    { id: "p72", name: "épinards", rayonId: "r7" },
     { id: "p73", name: "Lentilles cuisinées", rayonId: "r7" },
-    { id: "p74", name: "épinards", rayonId: "r7" },
-    { id: "p75", name: "petits pois - carottes", rayonId: "r7" },
-    { id: "p76", name: "raviolis bolognaise", rayonId: "r7" },
-    { id: "p77", name: "huile d'olive", rayonId: "r7" },
-    { id: "p78", name: "Yaourts nature", rayonId: "r8" },
-    { id: "p79", name: "Mousses liégeois", rayonId: "r8" },
-    { id: "p80", name: "Yaourts aux fruits", rayonId: "r8" },
-    { id: "p81", name: "Beurre", rayonId: "r8" },
-    { id: "p82", name: "Gruyère râpé", rayonId: "r8" },
-    { id: "p83", name: "Lait", rayonId: "r8" },
-    { id: "p84", name: "crème semi-épaisse", rayonId: "r8" },
-    { id: "p85", name: "Œufs", rayonId: "r8" },
-    { id: "p86", name: "Poissons panés", rayonId: "r9" },
-    { id: "p87", name: "Fish & Chips", rayonId: "r9" },
-    { id: "p88", name: "Frites", rayonId: "r9" },
-    { id: "p89", name: "pommes de terre croquettes", rayonId: "r9" },
-    { id: "p90", name: "légumes surgelés", rayonId: "r9" },
-    { id: "p91", name: "Glaces", rayonId: "r9" },
-    { id: "p92", name: "Flammekueche", rayonId: "r10" },
-    { id: "p93", name: "Lardons (émincés)", rayonId: "r10" },
-    { id: "p94", name: "carottes râpées", rayonId: "r10" },
-    { id: "p95", name: "taboulé", rayonId: "r10" },
-    { id: "p96", name: "pâte feuilletée", rayonId: "r10" },
-    { id: "p97", name: "Poulet", rayonId: "r11" },
-    { id: "p98", name: "Steak haché", rayonId: "r11" },
+    { id: "p74", name: "Haricots verts", rayonId: "r7" },
+    { id: "p75", name: "Ratatouille", rayonId: "r7" },
+    { id: "p76", name: "Maïs", rayonId: "r7" },
+    { id: "p77", name: "Thon", rayonId: "r7" },
+    { id: "p78", name: "Œufs", rayonId: "r8" },
+    { id: "p79", name: "crème semi-épaisse", rayonId: "r8" },
+    { id: "p80", name: "Lait", rayonId: "r8" },
+    { id: "p81", name: "Gruyère râpé", rayonId: "r8" },
+    { id: "p82", name: "Beurre", rayonId: "r8" },
+    { id: "p83", name: "Yaourts aux fruits", rayonId: "r8" },
+    { id: "p84", name: "Mousses liégeois", rayonId: "r8" },
+    { id: "p85", name: "Yaourts nature", rayonId: "r8" },
+    { id: "p86", name: "Glaces", rayonId: "r9" },
+    { id: "p87", name: "légumes surgelés", rayonId: "r9" },
+    { id: "p88", name: "pommes de terre croquettes", rayonId: "r9" },
+    { id: "p89", name: "Frites", rayonId: "r9" },
+    { id: "p90", name: "Fish & Chips", rayonId: "r9" },
+    { id: "p91", name: "Poissons panés", rayonId: "r9" },
+    { id: "p92", name: "pâte feuilletée", rayonId: "r10" },
+    { id: "p93", name: "taboulé", rayonId: "r10" },
+    { id: "p94", name: "Lardons (émincés)", rayonId: "r10" },
+    { id: "p95", name: "carottes râpées", rayonId: "r10" },
+    { id: "p96", name: "Flammekueche", rayonId: "r10" },
+    { id: "p97", name: "saucisson / chorizo / andouille", rayonId: "r11" },
+    { id: "p98", name: "pâté", rayonId: "r11" },
     { id: "p99", name: "Jambon", rayonId: "r11" },
-    { id: "p100", name: "pâté", rayonId: "r11" },
-    { id: "p101", name: "saucisson / chorizo / andouille", rayonId: "r11" },
+    { id: "p100", name: "Steak haché", rayonId: "r11" },
+    { id: "p101", name: "Poulet", rayonId: "r11" },
     { id: "p102", name: "saumon", rayonId: "r12" },
-    { id: "p103", name: "Bananes", rayonId: "r13" },
-    { id: "p104", name: "oranges", rayonId: "r13" },
-    { id: "p105", name: "citron", rayonId: "r13" },
-    { id: "p106", name: "Pommes", rayonId: "r13" },
-    { id: "p107", name: "Tomates", rayonId: "r13" },
+    { id: "p103", name: "avocat", rayonId: "r13" },
+    { id: "p104", name: "tomates cerise", rayonId: "r13" },
+    { id: "p105", name: "ail", rayonId: "r13" },
+    { id: "p106", name: "oignons", rayonId: "r13" },
+    { id: "p107", name: "pommes de terre", rayonId: "r13" },
     { id: "p108", name: "Salade", rayonId: "r13" },
-    { id: "p109", name: "pommes de terre", rayonId: "r13" },
-    { id: "p110", name: "oignons", rayonId: "r13" },
-    { id: "p111", name: "ail", rayonId: "r13" },
-    { id: "p112", name: "tomates cerise", rayonId: "r13" },
-    { id: "p113", name: "avocat", rayonId: "r13" },
+    { id: "p109", name: "Tomates", rayonId: "r13" },
+    { id: "p110", name: "Pommes", rayonId: "r13" },
+    { id: "p111", name: "citron", rayonId: "r13" },
+    { id: "p112", name: "oranges", rayonId: "r13" },
+    { id: "p113", name: "Bananes", rayonId: "r13" },
     { id: "p114", name: "chewing-gum", rayonId: "r14" }
   ];
 
   var PALETTE = ["#3C8B5C", "#B9873B", "#3E8FB0", "#C1483D", "#C99A2E", "#C9598A", "#2F9E9E", "#7A5CB0", "#A25B8C", "#5C7A8A", "#8B5E3C", "#4A8B6B", "#2C6E8A", "#8A7F6B"];
   var STORAGE_KEY = "shopping-app:data";
-  var CATALOG_VERSION = 4;
+  var CATALOG_VERSION = 6;
 
   /* ---------- Couche de stockage : window.storage (artefact Claude, partagé)
      avec repli automatique sur localStorage (navigateur classique, local à cet appareil) ---------- */
@@ -451,39 +451,14 @@
   }
 
   /* ---------- Persistance ---------- */
-  function mergeMissingDefaults() {
-    var defaultRayonById = {};
-    DEFAULT_RAYONS.forEach(function (r) { defaultRayonById[r.id] = r; });
-    DEFAULT_RAYONS.forEach(function (dr) {
-      var exists = state.rayons.some(function (r) { return r.name.toLowerCase() === dr.name.toLowerCase(); });
-      if (!exists) state.rayons.push({ id: uid("r"), name: dr.name, color: dr.color });
-    });
-    DEFAULT_CATALOG.forEach(function (dp) {
-      var dRayon = defaultRayonById[dp.rayonId];
-      if (!dRayon) return;
-      var rayon = state.rayons.find(function (r) { return r.name.toLowerCase() === dRayon.name.toLowerCase(); });
-      if (!rayon) return;
-      var exists = state.catalog.some(function (p) { return p.rayonId === rayon.id && p.name.toLowerCase() === dp.name.toLowerCase(); });
-      if (!exists) state.catalog.push({ id: uid("p"), name: dp.name, rayonId: rayon.id });
-    });
-  }
-
-  // Rayons renommés/scindés dont l'ancien nom doit disparaître : les produits restants
-  // sont déplacés vers le rayon de repli avant suppression, pour ne rien perdre.
-  var OBSOLETE_RAYONS = [
-    { oldName: "boucherie et poissonnerie", fallbackName: "boucherie / charcuterie" }
-  ];
-
-  function removeObsoleteRayons() {
-    OBSOLETE_RAYONS.forEach(function (entry) {
-      var old = state.rayons.find(function (r) { return r.name.toLowerCase() === entry.oldName; });
-      if (!old) return;
-      var fallback = state.rayons.find(function (r) { return r.name.toLowerCase() === entry.fallbackName; }) || state.rayons[0];
-      if (fallback) {
-        state.catalog.forEach(function (p) { if (p.rayonId === old.id) p.rayonId = fallback.id; });
-      }
-      state.rayons = state.rayons.filter(function (r) { return r.id !== old.id; });
-    });
+  // Historique : plusieurs migrations incrémentales (fusion + suppression + couleurs) se sont
+  // empilées et ont fini par créer des doublons et des rayons mal placés après plusieurs cycles
+  // d'import/export sur un même appareil. On remplace désormais entièrement rayons + catalogue
+  // par les valeurs de référence ci-dessus à chaque montée de version, plutôt que de les fusionner.
+  // La liste active, les notes et les archives ne sont pas touchées.
+  function resetCatalogToDefaults() {
+    state.rayons = DEFAULT_RAYONS.map(function (r) { return { id: r.id, name: r.name, color: r.color }; });
+    state.catalog = DEFAULT_CATALOG.map(function (p) { return { id: p.id, name: p.name, rayonId: p.rayonId }; });
   }
 
   function load() {
@@ -508,8 +483,7 @@
       }
     }).catch(function () { /* pas de données existantes */ }).finally(function () {
       if ((state.catalogVersion || 0) < CATALOG_VERSION) {
-        mergeMissingDefaults();
-        removeObsoleteRayons();
+        resetCatalogToDefaults();
         state.catalogVersion = CATALOG_VERSION;
         scheduleSave();
       }
