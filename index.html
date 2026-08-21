@@ -358,18 +358,6 @@
       "\n</" + "script>\n</body>\n</html>";
   }
 
-  function downloadHtmlFile(filename, htmlString) {
-    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
   function shareTextFile(filename, html, shareTitle) {
     var blob = new Blob([html], { type: "text/html;charset=utf-8" });
     var canTryShare = false;
@@ -385,11 +373,11 @@
     if (canTryShare) {
       navigator.share({ files: [file], title: shareTitle || filename }).catch(function (err) {
         if (!err || err.name !== "AbortError") {
-          showToast("Le partage a échoué — utilise \u00ab Télécharger \u00bb à la place.");
+          showToast("Le partage a échoué.");
         }
       });
     } else {
-      showToast("Le partage direct n'est pas disponible sur ce navigateur — utilise \u00ab Télécharger \u00bb à la place.");
+      showToast("Le partage direct n'est pas disponible sur ce navigateur.");
     }
   }
 
@@ -408,11 +396,6 @@
     var dateLabel = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
     var html = buildExportHtml("Ma liste de courses", dateLabel, groups, state.listNote);
     return { filename: "liste-de-courses-" + now.toISOString().slice(0, 10) + ".html", text: html, title: "Ma liste de courses" };
-  }
-
-  function downloadList() {
-    var out = buildListExport();
-    if (out) downloadHtmlFile(out.filename, out.text);
   }
 
   function shareList() {
@@ -442,92 +425,15 @@
     return { filename: "liste-de-courses-" + a.date.slice(0, 10) + ".html", text: html, title: "Liste de courses archivée" };
   }
 
-  function downloadArchive(a) {
-    var out = buildArchiveExport(a);
-    downloadHtmlFile(out.filename, out.text);
-  }
-
   function shareArchive(a) {
     var out = buildArchiveExport(a);
     shareTextFile(out.filename, out.text, out.title);
-  }
-
-  /* ---------- Import d'une liste reçue ---------- */
-  function triggerImport() {
-    var inp = document.getElementById("importFileInput");
-    if (inp) inp.click();
   }
 
   function showToast(msg) {
     ui.toastMsg = msg;
     render();
     setTimeout(function () { ui.toastMsg = ""; render(); }, 3000);
-  }
-
-  function handleImportFile(e) {
-    var file = e.target.files && e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function (ev) {
-      var text = String(ev.target.result || "");
-      // Nouveau format .txt (marqueurs texte) ou ancien format .html (balise script), pour compatibilité.
-      var m = text.match(/##SHOPPING-LIST-DATA-DO-NOT-EDIT##\s*([\s\S]*?)\s*##END-SHOPPING-LIST-DATA##/) ||
-        text.match(/<script type="application\/json" id="shopping-list-data">([\s\S]*?)<\/script>/);
-      if (!m) {
-        showToast("Ce fichier n'est pas une liste exportée reconnue.");
-        return;
-      }
-      var data;
-      try {
-        data = JSON.parse(m[1]);
-      } catch (err) {
-        showToast("Le fichier importé est invalide.");
-        return;
-      }
-      mergeImportedData(data);
-    };
-    reader.onerror = function () { showToast("Impossible de lire le fichier."); };
-    reader.readAsText(file);
-  }
-
-  function mergeImportedData(data) {
-    var added = 0;
-    var colorByRayonName = {};
-    (data.rayons || []).forEach(function (r) {
-      if (r && r.name) colorByRayonName[r.name.toLowerCase()] = r.color;
-    });
-    (data.items || []).forEach(function (it) {
-      if (!it || !it.name) return;
-      var rayon = null;
-      if (it.rayon) {
-        rayon = state.rayons.find(function (r) { return r.name.toLowerCase() === it.rayon.toLowerCase(); });
-        if (!rayon) {
-          var color = colorByRayonName[it.rayon.toLowerCase()] || PALETTE[state.rayons.length % PALETTE.length];
-          rayon = { id: uid("r"), name: it.rayon, color: color };
-          state.rayons.push(rayon);
-        }
-      }
-      var rayonId = rayon ? rayon.id : state.rayons[0].id;
-      var product = state.catalog.find(function (p) { return p.rayonId === rayonId && p.name.toLowerCase() === it.name.toLowerCase(); });
-      if (!product) {
-        product = { id: uid("p"), name: it.name, rayonId: rayonId };
-        state.catalog.push(product);
-      }
-      var already = state.list.some(function (li) { return li.productId === product.id; });
-      if (!already) {
-        state.list.push({ productId: product.id, checked: !!it.checked });
-        added++;
-      }
-      if (it.note) state.notes[product.id] = it.note;
-    });
-    if (data.note) {
-      state.listNote = state.listNote ? (state.listNote + "\n" + data.note) : data.note;
-    }
-    scheduleSave();
-    ui.tab = "liste";
-    render();
-    showToast(added > 0 ? (added + " article(s) importé(s) dans ta liste !") : "Liste importée (déjà à jour).");
   }
 
   /* ---------- Persistance ---------- */
@@ -820,10 +726,6 @@
 
     var html = "";
 
-    html += '<input type="file" id="importFileInput" accept=".html,.htm,.txt" style="display:none" />' +
-      '<button data-action="import-list" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';margin-bottom:' + (compact ? 8 : 14) + 'px;background:#fff;color:#1E4632;border:1px dashed #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
-      icon("upload", compact ? 13 : 15) + "Importer une liste reçue</button>";
-
     if (ui.toastMsg) {
       html += '<div style="background:#1E4632;color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;text-align:center;">' + esc(ui.toastMsg) + "</div>";
     }
@@ -832,8 +734,6 @@
       html += '<div style="display:flex;flex-wrap:wrap;gap:' + (compact ? 6 : 8) + 'px;margin-bottom:' + (compact ? 8 : 14) + 'px;">' +
         '<button data-action="archive-list" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
         icon("archive", compact ? 13 : 15) + (compact ? "" : "Archiver") + "</button>" +
-        '<button data-action="download-list" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
-        icon("download", compact ? 13 : 15) + (compact ? "" : "Télécharger") + "</button>" +
         '<button data-action="share-list" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
         icon("share", compact ? 13 : 15) + (compact ? "" : "Partager") + "</button>" +
         '<button data-action="confirm-reset-open" style="flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';background:#fff;color:#C1483D;border:1px solid #C1483D;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
@@ -1006,7 +906,6 @@
         '<button data-action="toggle-archive" data-id="' + a.id + '" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:transparent;border:none;text-align:left;cursor:pointer;">' +
         '<div><div style="font-size:14px;font-weight:600;">' + esc(dateLabel) + '</div><div style="font-size:12px;color:#5f6b62;">' + a.items.length + " article" + (a.items.length > 1 ? "s" : "") + "</div></div>" +
         '<div style="display:flex;align-items:center;gap:6px;">' +
-        '<span data-action="download-archive" data-id="' + a.id + '" role="button" aria-label="Télécharger cette liste" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("download", 15, "#1E4632") + "</span>" +
         '<span data-action="share-archive" data-id="' + a.id + '" role="button" aria-label="Partager cette liste" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("share", 15, "#1E4632") + "</span>" +
         '<span data-action="delete-archive" data-id="' + a.id + '" role="button" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</span>" +
         icon(open ? "chevronUp" : "chevronDown", 16) +
@@ -1112,9 +1011,7 @@
       case "submit-new-product": submitNewProduct(); break;
       case "cancel-new-product": ui.showAdd = false; ui.addingRayon = false; render(); break;
       case "archive-list": archiveList(); break;
-      case "download-list": downloadList(); break;
       case "share-list": shareList(); break;
-      case "import-list": triggerImport(); break;
       case "confirm-reset-open": ui.confirmReset = true; render(); break;
       case "confirm-reset-yes": resetList(); break;
       case "confirm-reset-no": ui.confirmReset = false; render(); break;
@@ -1124,11 +1021,6 @@
       case "notes-open": ui.notesOpen = true; render(); break;
       case "toggle-archive": ui.openArchiveId = ui.openArchiveId === id ? null : id; render(); break;
       case "delete-archive": deleteArchive(id); break;
-      case "download-archive": {
-        var arcD = state.archives.find(function (x) { return x.id === id; });
-        if (arcD) downloadArchive(arcD);
-        break;
-      }
       case "share-archive": {
         var arcS = state.archives.find(function (x) { return x.id === id; });
         if (arcS) shareArchive(arcS);
@@ -1155,9 +1047,7 @@
 
   function handleChange(e) {
     var t = e.target;
-    if (t.id === "importFileInput") {
-      handleImportFile(e);
-    } else if (t.hasAttribute("data-rayon-color-id")) {
+    if (t.hasAttribute("data-rayon-color-id")) {
       updateRayonColor(t.getAttribute("data-rayon-color-id"), t.value);
     } else if (t.hasAttribute("data-product-rayon-id")) {
       changeProductRayon(t.getAttribute("data-product-rayon-id"), t.value);
