@@ -266,12 +266,13 @@
     showAdd: false,
     addingRayon: false,
     compact: false,
-    checkedOpen: true,
     notesOpen: false,
     confirmReset: false,
     archiveMsg: "",
     toastMsg: "",
     confirmDeleteRayon: null,
+    collapsedListRayons: {},
+    collapsedCatalogRayons: {},
     openArchiveId: null,
     error: "",
     loaded: false
@@ -305,46 +306,59 @@
   }
 
   /* ---------- Export HTML autonome (statique, pas de partage en temps réel) ---------- */
-  function buildExportText(title, dateLabel, groups, note) {
+  function buildExportHtml(title, dateLabel, groups, note) {
     var flatItems = [];
     var rayonsMeta = [];
+    var idx = 0;
     groups.forEach(function (g) {
       rayonsMeta.push({ name: g.name, color: g.color });
       g.items.forEach(function (it) {
         flatItems.push({ name: it.name, rayon: g.name, note: it.note || "", checked: !!it.checked });
       });
     });
-    var payload = JSON.stringify({ version: 2, title: title, date: dateLabel, note: note || "", rayons: rayonsMeta, items: flatItems });
+    var payload = JSON.stringify({ version: 2, title: title, date: dateLabel, note: note || "", rayons: rayonsMeta, items: flatItems }).replace(/</g, "\\u003c");
+    var storageKey = "exported-list:" + title + ":" + dateLabel;
 
-    var lines = [];
-    lines.push(title.toUpperCase());
-    lines.push(dateLabel);
-    lines.push("");
-    groups.forEach(function (g) {
-      lines.push("— " + g.name.toUpperCase() + " —");
-      g.items.forEach(function (it) {
-        var box = it.checked ? "\u2611" : "\u2610";
-        var line = box + " " + it.name;
-        if (it.note) line += "  (" + it.note + ")";
-        lines.push(line);
-      });
-      lines.push("");
-    });
-    if (note) {
-      lines.push("NOTES");
-      lines.push(note);
-      lines.push("");
-    }
-    lines.push("Cette liste peut être importée dans l'appli Liste de courses via le bouton \"Importer une liste reçue\".");
-    lines.push("");
-    lines.push("##SHOPPING-LIST-DATA-DO-NOT-EDIT##");
-    lines.push(payload);
-    lines.push("##END-SHOPPING-LIST-DATA##");
+    var groupsHtml = groups.map(function (g) {
+      var itemsHtml = g.items.map(function (it) {
+        var itemId = "item-" + idx++;
+        return '<li class="' + (it.checked ? "checked" : "") + '">' +
+          '<label><input type="checkbox" data-item="' + itemId + '" ' + (it.checked ? "checked" : "") + ' />' +
+          '<span class="name">' + esc(it.name) + "</span></label>" +
+          (it.note ? '<span class="note">' + esc(it.note) + "</span>" : "") +
+          "</li>";
+      }).join("");
+      return '<section class="rayon"><h2 style="background:' + g.color + '">' + esc(g.name) + "</h2><ul>" + itemsHtml + "</ul></section>";
+    }).join("");
 
-    return lines.join("\n");
+    return "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n<title>" + esc(title) + "</title>\n<script type=\"application/json\" id=\"shopping-list-data\">" + payload + "</" + "script>\n<style>\n" +
+      "body{font-family:-apple-system,'Inter',system-ui,sans-serif;background:#F1F4EE;color:#182019;margin:0;padding:20px;}" +
+      ".wrap{max-width:480px;margin:0 auto;}" +
+      "h1{font-size:20px;background:#1E4632;color:#F1F4EE;padding:16px 18px;margin:0 0 4px;border-radius:10px 10px 0 0;}" +
+      ".date{font-size:13px;color:#5f6b62;background:#fff;padding:8px 18px;margin-bottom:16px;border-radius:0 0 10px 10px;}" +
+      ".hint{font-size:12px;color:#5f6b62;background:#fff;padding:8px 18px;margin-bottom:16px;border-radius:10px;}" +
+      ".rayon{margin-bottom:16px;}" +
+      ".rayon h2{display:inline-block;color:#fff;font-size:12px;letter-spacing:.4px;padding:4px 10px;border-radius:4px 4px 4px 0;margin:0 0 6px;}" +
+      "ul{list-style:none;margin:0;padding:0;background:#fff;border-radius:10px;overflow:hidden;}" +
+      "li{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid #EDEFE9;font-size:15px;}" +
+      "li:first-child{border-top:none;}" +
+      "li label{display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;}" +
+      "li.checked .name{text-decoration:line-through;color:#94998f;}" +
+      "li input{width:18px;height:18px;flex-shrink:0;cursor:pointer;}" +
+      ".name{flex:1;} .note{font-size:13px;color:#5f6b62;}" +
+      ".general-note{background:#fff;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:14px;white-space:pre-wrap;}" +
+      ".general-note h2{font-size:12px;letter-spacing:.4px;color:#5f6b62;margin:0 0 8px;}" +
+      "@media print{body{background:#fff;} input{-webkit-print-color-adjust:exact;}}" +
+      "\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n<h1>" + esc(title) + "</h1>\n<div class=\"date\">" + esc(dateLabel) + "</div>\n" +
+      '<div class="hint">Coche les articles au fur et à mesure de tes achats \u2014 c\'est sauvegardé dans ce fichier, sur cet appareil. Si tu as l\'appli Liste de courses, tu peux aussi l\'importer via le bouton \u00ab\u00a0Importer une liste re\u00e7ue\u00a0\u00bb.</div>\n' +
+      groupsHtml +
+      (note ? '<div class="general-note"><h2>NOTES</h2><p>' + esc(note) + "</p></div>" : "") +
+      "\n</div>\n<script>\n" +
+      "(function(){var KEY=" + JSON.stringify(storageKey) + ";function load(){try{return JSON.parse(localStorage.getItem(KEY)||\"{}\");}catch(e){return {};}}function save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}var state=load();document.querySelectorAll(\"input[data-item]\").forEach(function(cb){var id=cb.getAttribute(\"data-item\");if(state[id]!==undefined){cb.checked=!!state[id];}var li=cb.closest(\"li\");li.classList.toggle(\"checked\",cb.checked);cb.addEventListener(\"change\",function(){state[id]=cb.checked;save(state);li.classList.toggle(\"checked\",cb.checked);});});})();" +
+      "\n</" + "script>\n</body>\n</html>";
   }
 
-  function downloadTextFile(filename, text) {
+  function downloadHtmlFile(filename, htmlString) {
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
@@ -356,13 +370,13 @@
     URL.revokeObjectURL(url);
   }
 
-  function shareTextFile(filename, text, shareTitle) {
-    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  function shareTextFile(filename, html, shareTitle) {
+    var blob = new Blob([html], { type: "text/html;charset=utf-8" });
     var canTryShare = false;
     var file = null;
     if (window.isSecureContext !== false && navigator.share && navigator.canShare) {
       try {
-        file = new File([blob], filename, { type: "text/plain" });
+        file = new File([blob], filename, { type: "text/html" });
         canTryShare = navigator.canShare({ files: [file] });
       } catch (e) {
         canTryShare = false;
@@ -392,13 +406,13 @@
     }).filter(function (g) { return g.items.length > 0; });
     var now = new Date();
     var dateLabel = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    var text = buildExportText("Ma liste de courses", dateLabel, groups, state.listNote);
-    return { filename: "liste-de-courses-" + now.toISOString().slice(0, 10) + ".txt", text: text, title: "Ma liste de courses" };
+    var html = buildExportHtml("Ma liste de courses", dateLabel, groups, state.listNote);
+    return { filename: "liste-de-courses-" + now.toISOString().slice(0, 10) + ".html", text: html, title: "Ma liste de courses" };
   }
 
   function downloadList() {
     var out = buildListExport();
-    if (out) downloadTextFile(out.filename, out.text);
+    if (out) downloadHtmlFile(out.filename, out.text);
   }
 
   function shareList() {
@@ -424,13 +438,13 @@
       return r ? r.color : "#5C7A8A";
     }
     var groups = names.map(function (n) { return { name: n || "Autre", color: colorFor(n), items: byName[n] }; });
-    var text = buildExportText("Liste de courses archivée", dateLabel, groups, a.note);
-    return { filename: "liste-de-courses-" + a.date.slice(0, 10) + ".txt", text: text, title: "Liste de courses archivée" };
+    var html = buildExportHtml("Liste de courses archivée", dateLabel, groups, a.note);
+    return { filename: "liste-de-courses-" + a.date.slice(0, 10) + ".html", text: html, title: "Liste de courses archivée" };
   }
 
   function downloadArchive(a) {
     var out = buildArchiveExport(a);
-    downloadTextFile(out.filename, out.text);
+    downloadHtmlFile(out.filename, out.text);
   }
 
   function shareArchive(a) {
@@ -753,6 +767,16 @@
       esc(rayon.name.toUpperCase()) + "</span>";
   }
 
+  // En-tête de rayon repliable : replié, n'affiche que le nom du rayon et un chiffre
+  // (nombre d'articles cochés dans "Ma liste", ou ajoutés à la liste dans le Catalogue).
+  function rayonHeaderRow(rayon, count, totalInGroup, collapsed, toggleAction, compact) {
+    return '<button data-action="' + toggleAction + '" data-id="' + rayon.id + '" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;cursor:pointer;text-align:left;">' +
+      rayonTag(rayon, compact) +
+      (collapsed ? '<span style="font-size:' + (compact ? 11 : 12) + 'px;color:#5f6b62;background:#fff;padding:2px 9px;border-radius:10px;flex-shrink:0;">' + count + "</span>" : "") +
+      '<span style="margin-left:auto;color:#93998D;flex-shrink:0;">' + icon(collapsed ? "chevronDown" : "chevronUp", compact ? 14 : 16) + "</span>" +
+      "</button>";
+  }
+
   function renderHeader() {
     var listItems = getListItems();
     var total = listItems.length;
@@ -784,14 +808,19 @@
     var compact = ui.compact;
     var listItems = getListItems();
     var total = listItems.length;
-    var uncheckedByRayon = state.rayons
-      .map(function (r) { return { rayon: r, items: listItems.filter(function (i) { return !i.checked && i.product.rayonId === r.id; }) }; })
+    var doneTotal = listItems.filter(function (i) { return i.checked; }).length;
+    var itemsByRayon = state.rayons
+      .map(function (r) {
+        var items = listItems.filter(function (i) { return i.product.rayonId === r.id; })
+          .slice()
+          .sort(function (a, b) { return (a.checked ? 1 : 0) - (b.checked ? 1 : 0); });
+        return { rayon: r, items: items, checkedCount: items.filter(function (i) { return i.checked; }).length };
+      })
       .filter(function (g) { return g.items.length > 0; });
-    var checkedItems = listItems.filter(function (i) { return i.checked; });
 
     var html = "";
 
-    html += '<input type="file" id="importFileInput" accept=".txt,.html,.htm" style="display:none" />' +
+    html += '<input type="file" id="importFileInput" accept=".html,.htm,.txt" style="display:none" />' +
       '<button data-action="import-list" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:' + (compact ? "5px 8px" : "9px 10px") + ';margin-bottom:' + (compact ? 8 : 14) + 'px;background:#fff;color:#1E4632;border:1px dashed #1E4632;border-radius:8px;font-size:' + (compact ? 12 : 13) + 'px;font-weight:600;cursor:pointer;">' +
       icon("upload", compact ? 13 : 15) + "Importer une liste reçue</button>";
 
@@ -829,38 +858,33 @@
       html += '<div style="text-align:center;color:#5f6b62;margin-top:60px;font-size:14px;line-height:1.6;">Ta liste est vide.<br/>Va dans le catalogue pour ajouter des produits.</div>';
     }
 
-    uncheckedByRayon.forEach(function (g) {
-      html += '<section style="margin-bottom:' + (compact ? 8 : 16) + 'px;">' + rayonTag(g.rayon, compact) +
-        '<div style="background:#fff;border-radius:' + (compact ? 8 : 10) + 'px;overflow:hidden;margin-top:' + (compact ? 3 : 6) + 'px;">';
-      g.items.forEach(function (i, idx) {
-        html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:' + (compact ? 6 : 8) + 'px;padding:' + (compact ? "5px 8px 5px 10px" : "10px 10px 10px 14px") + ';border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
-          '<button data-action="toggle-checked" data-id="' + i.productId + '" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;padding:0;">' +
-          '<span style="width:' + (compact ? 15 : 20) + 'px;height:' + (compact ? 15 : 20) + 'px;border-radius:' + (compact ? 4 : 5) + 'px;border:2px solid #B7C0B4;flex-shrink:0;"></span>' +
-          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(i.product.name) + "</span></button>" +
-          (i.note ? noteFieldHtml(i.productId, i.note, "#4b5a52") : "") +
-          "</div>";
-      });
-      html += "</div></section>";
-    });
-
-    if (checkedItems.length > 0) {
-      html += '<section style="margin-bottom:' + (compact ? 10 : 20) + 'px;">' +
-        '<button data-action="toggle-checked-section" class="aisle-tag" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#5f6b62;margin-bottom:6px;letter-spacing:.5px;background:none;border:none;padding:0;cursor:pointer;">' +
-        "DÉJÀ DANS LE CHARIOT (" + checkedItems.length + ") " + icon(ui.checkedOpen ? "chevronUp" : "chevronDown", 12) + "</button>";
-      if (ui.checkedOpen) {
-        html += '<div style="background:#fff;border-radius:10px;overflow:hidden;">';
-        checkedItems.forEach(function (i, idx) {
-          html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:' + (compact ? 6 : 8) + 'px;padding:' + (compact ? "5px 8px 5px 10px" : "10px 10px 10px 14px") + ';border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
-            '<button data-action="toggle-checked" data-id="' + i.productId + '" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;color:#94998f;padding:0;">' +
-            '<span style="width:' + (compact ? 15 : 20) + 'px;height:' + (compact ? 15 : 20) + 'px;border-radius:' + (compact ? 4 : 5) + 'px;background:#1E4632;flex-shrink:0;display:flex;align-items:center;justify-content:center;">' + icon("check", compact ? 10 : 14, "#fff") + "</span>" +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:line-through;">' + esc(i.product.name) + "</span></button>" +
-            (i.note ? noteFieldHtml(i.productId, i.note, "#94998f") : "") +
-            "</div>";
+    itemsByRayon.forEach(function (g) {
+      var collapsed = !!ui.collapsedListRayons[g.rayon.id];
+      html += '<section style="margin-bottom:' + (compact ? 8 : 16) + 'px;">' +
+        rayonHeaderRow(g.rayon, g.checkedCount, g.items.length, collapsed, "toggle-list-rayon", compact);
+      if (!collapsed) {
+        html += '<div style="background:#fff;border-radius:' + (compact ? 8 : 10) + 'px;overflow:hidden;margin-top:' + (compact ? 3 : 6) + 'px;">';
+        g.items.forEach(function (i, idx) {
+          if (i.checked) {
+            html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:' + (compact ? 6 : 8) + 'px;padding:' + (compact ? "5px 8px 5px 10px" : "10px 10px 10px 14px") + ';border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
+              '<button data-action="toggle-checked" data-id="' + i.productId + '" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;color:#94998f;padding:0;">' +
+              '<span style="width:' + (compact ? 15 : 20) + 'px;height:' + (compact ? 15 : 20) + 'px;border-radius:' + (compact ? 4 : 5) + 'px;background:#1E4632;flex-shrink:0;display:flex;align-items:center;justify-content:center;">' + icon("check", compact ? 10 : 14, "#fff") + "</span>" +
+              '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:line-through;">' + esc(i.product.name) + "</span></button>" +
+              (i.note ? noteFieldHtml(i.productId, i.note, "#94998f") : "") +
+              "</div>";
+          } else {
+            html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:' + (compact ? 6 : 8) + 'px;padding:' + (compact ? "5px 8px 5px 10px" : "10px 10px 10px 14px") + ';border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
+              '<button data-action="toggle-checked" data-id="' + i.productId + '" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;padding:0;">' +
+              '<span style="width:' + (compact ? 15 : 20) + 'px;height:' + (compact ? 15 : 20) + 'px;border-radius:' + (compact ? 4 : 5) + 'px;border:2px solid #B7C0B4;flex-shrink:0;"></span>' +
+              '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(i.product.name) + "</span></button>" +
+              (i.note ? noteFieldHtml(i.productId, i.note, "#4b5a52") : "") +
+              "</div>";
+          }
         });
         html += "</div>";
       }
       html += "</section>";
-    }
+    });
 
     if (!compact || state.listNote || ui.notesOpen) {
       html += '<section style="margin-bottom:' + (compact ? 10 : 20) + 'px;">' +
@@ -910,6 +934,8 @@
 
     catalogByRayon.forEach(function (g) {
       var rIndex = state.rayons.findIndex(function (r) { return r.id === g.rayon.id; });
+      var collapsed = !manage && !!ui.collapsedCatalogRayons[g.rayon.id];
+      var inListCount = g.items.filter(function (p) { return inListIds[p.id]; }).length;
       html += '<section style="margin-bottom:16px;">';
       if (manage) {
         html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
@@ -928,7 +954,11 @@
             "</div></div>";
         }
       } else {
-        html += '<div style="margin-bottom:6px;">' + rayonTag(g.rayon, false) + "</div>";
+        html += '<div style="margin-bottom:6px;">' + rayonHeaderRow(g.rayon, inListCount, g.items.length, collapsed, "toggle-catalog-rayon", false) + "</div>";
+      }
+      if (collapsed) {
+        html += "</section>";
+        return;
       }
       html += '<div data-sortable-container="products:' + g.rayon.id + '" style="background:#fff;border-radius:10px;overflow:hidden;">';
       if (g.items.length === 0) {
@@ -1089,7 +1119,8 @@
       case "confirm-reset-yes": resetList(); break;
       case "confirm-reset-no": ui.confirmReset = false; render(); break;
       case "toggle-compact": ui.compact = !ui.compact; render(); break;
-      case "toggle-checked-section": ui.checkedOpen = !ui.checkedOpen; render(); break;
+      case "toggle-list-rayon": ui.collapsedListRayons[id] = !ui.collapsedListRayons[id]; render(); break;
+      case "toggle-catalog-rayon": ui.collapsedCatalogRayons[id] = !ui.collapsedCatalogRayons[id]; render(); break;
       case "notes-open": ui.notesOpen = true; render(); break;
       case "toggle-archive": ui.openArchiveId = ui.openArchiveId === id ? null : id; render(); break;
       case "delete-archive": deleteArchive(id); break;
