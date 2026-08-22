@@ -334,9 +334,9 @@
     return "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n<title>" + esc(title) + "</title>\n<script type=\"application/json\" id=\"shopping-list-data\">" + payload + "</" + "script>\n<style>\n" +
       "body{font-family:-apple-system,'Inter',system-ui,sans-serif;background:#F1F4EE;color:#182019;margin:0;padding:20px;}" +
       ".wrap{max-width:480px;margin:0 auto;}" +
-      "h1{font-size:20px;background:#1E4632;color:#F1F4EE;padding:16px 18px;margin:0 0 4px;border-radius:10px 10px 0 0;}" +
+      "h1{font-size:20px;background:#1E4632;color:#F1F4EE;padding:16px 18px;margin:0 0 4px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px;}" +
+      "#compactToggle{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border:none;border-radius:7px;color:#F1F4EE;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0;}" +
       ".date{font-size:13px;color:#5f6b62;background:#fff;padding:8px 18px;margin-bottom:16px;border-radius:0 0 10px 10px;}" +
-      ".hint{font-size:12px;color:#5f6b62;background:#fff;padding:8px 18px;margin-bottom:16px;border-radius:10px;}" +
       ".rayon{margin-bottom:16px;}" +
       ".rayon h2{display:inline-block;color:#fff;font-size:12px;letter-spacing:.4px;padding:4px 10px;border-radius:4px 4px 4px 0;margin:0 0 6px;}" +
       "ul{list-style:none;margin:0;padding:0;background:#fff;border-radius:10px;overflow:hidden;}" +
@@ -348,13 +348,21 @@
       ".name{flex:1;} .note{font-size:13px;color:#5f6b62;}" +
       ".general-note{background:#fff;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:14px;white-space:pre-wrap;}" +
       ".general-note h2{font-size:12px;letter-spacing:.4px;color:#5f6b62;margin:0 0 8px;}" +
+      "body.compact{padding:10px;}" +
+      "body.compact h1{font-size:16px;padding:10px 14px 8px;}" +
+      "body.compact .date{font-size:11px;padding:5px 14px;}" +
+      "body.compact .rayon{margin-bottom:8px;}" +
+      "body.compact .rayon h2{font-size:10px;padding:2px 7px;margin:0 0 3px;}" +
+      "body.compact li{padding:5px 8px 5px 10px;font-size:13px;gap:6px;}" +
+      "body.compact li input{width:15px;height:15px;}" +
+      "body.compact .note{font-size:11px;}" +
+      "body.compact .general-note{padding:8px 10px;font-size:12px;margin-top:10px;}" +
       "@media print{body{background:#fff;} input{-webkit-print-color-adjust:exact;}}" +
-      "\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n<h1>" + esc(title) + "</h1>\n<div class=\"date\">" + esc(dateLabel) + "</div>\n" +
-      '<div class="hint">Coche les articles au fur et à mesure de tes achats \u2014 c\'est sauvegardé dans ce fichier, sur cet appareil. Si tu as l\'appli Liste de courses, tu peux aussi l\'importer via le bouton \u00ab\u00a0Importer une liste re\u00e7ue\u00a0\u00bb.</div>\n' +
+      "\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n<h1><span>" + esc(title) + '</span><button id="compactToggle" type="button">Compact</button></h1>\n<div class="date">' + esc(dateLabel) + "</div>\n" +
       groupsHtml +
       (note ? '<div class="general-note"><h2>NOTES</h2><p>' + esc(note) + "</p></div>" : "") +
       "\n</div>\n<script>\n" +
-      "(function(){var KEY=" + JSON.stringify(storageKey) + ";function load(){try{return JSON.parse(localStorage.getItem(KEY)||\"{}\");}catch(e){return {};}}function save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}var state=load();document.querySelectorAll(\"input[data-item]\").forEach(function(cb){var id=cb.getAttribute(\"data-item\");if(state[id]!==undefined){cb.checked=!!state[id];}var li=cb.closest(\"li\");li.classList.toggle(\"checked\",cb.checked);cb.addEventListener(\"change\",function(){state[id]=cb.checked;save(state);li.classList.toggle(\"checked\",cb.checked);});});})();" +
+      "(function(){var KEY=" + JSON.stringify(storageKey) + ";var COMPACT_KEY=\"exported-list:compact-pref\";function load(){try{return JSON.parse(localStorage.getItem(KEY)||\"{}\");}catch(e){return {};}}function save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}var state=load();document.querySelectorAll(\"input[data-item]\").forEach(function(cb){var id=cb.getAttribute(\"data-item\");if(state[id]!==undefined){cb.checked=!!state[id];}var li=cb.closest(\"li\");li.classList.toggle(\"checked\",cb.checked);cb.addEventListener(\"change\",function(){state[id]=cb.checked;save(state);li.classList.toggle(\"checked\",cb.checked);});});var toggleBtn=document.getElementById(\"compactToggle\");function applyCompact(on){document.body.classList.toggle(\"compact\",on);toggleBtn.textContent=on?\"Confort\":\"Compact\";}var savedCompact=false;try{savedCompact=localStorage.getItem(COMPACT_KEY)===\"1\";}catch(e){}applyCompact(savedCompact);toggleBtn.addEventListener(\"click\",function(){var on=!document.body.classList.contains(\"compact\");applyCompact(on);try{localStorage.setItem(COMPACT_KEY,on?\"1\":\"0\");}catch(e){}});})();" +
       "\n</" + "script>\n</body>\n</html>";
   }
 
