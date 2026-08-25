@@ -13,6 +13,12 @@
   .aisle-tag { font-family: 'Archivo Black', 'Inter', sans-serif; }
   #app { max-width: 420px; margin: 0 auto; min-height: 100vh; background: #F1F4EE; padding-bottom: 84px; position: relative; }
   a { text-decoration: none; }
+  @keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); opacity: .15; } }
+  @keyframes celebration-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.7); }
+    60% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
 </style>
 </head>
 <body>
@@ -44,6 +50,7 @@
       expand: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
       download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/>',
       upload: '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 19h16"/>',
+      save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>',
       share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5"/><path d="M15.4 6.5 8.6 10.5"/>',
       grip: '<circle cx="9" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.2" fill="currentColor" stroke="none"/>'
     };
@@ -254,17 +261,20 @@
   var state = {
     rayons: DEFAULT_RAYONS,
     catalog: DEFAULT_CATALOG,
+    pieces: [],
     list: [],
     notes: {},
     listNote: "",
     archives: [],
+    savedConfigs: [],
+    activeRayonConfigId: null,
+    activePieceConfigId: null,
     catalogVersion: CATALOG_VERSION
   };
   var ui = {
     tab: "liste",
     manage: false,
     showAdd: false,
-    addingRayon: false,
     compact: false,
     notesOpen: false,
     confirmReset: false,
@@ -272,7 +282,15 @@
     toastMsg: "",
     confirmDeleteRayon: null,
     collapsedListRayons: {},
+    collapsedArchiveRayons: {},
     collapsedCatalogRayons: {},
+    catalogView: "rayons",
+    showAddRayon: false,
+    showAddPiece: false,
+    confirmDeletePiece: null,
+    collapsedPieces: {},
+    configPanelOpen: false,
+    confirmDeleteConfig: null,
     openArchiveId: null,
     error: "",
     loaded: false
@@ -293,12 +311,13 @@
 
   // Champ libre (quantité / référence) : même taille partout (Catalogue et Ma liste),
   // largeur fixe pour laisser de la place au nom, et passage automatique à 2 lignes si besoin.
-  function noteFieldHtml(id, value, color) {
-    return '<textarea data-note-id="' + id + '" placeholder="qté, réf…" rows="1" style="flex:0 0 100px;width:100px;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid #E3E7DD;color:' + color + ';font-family:inherit;resize:none;overflow:hidden;line-height:1.3;max-height:2.9em;">' + esc(value) + "</textarea>";
+  function noteFieldHtml(id, value, color, attrName) {
+    attrName = attrName || "data-note-id";
+    return '<textarea ' + attrName + '="' + id + '" placeholder="qté, réf…" rows="1" style="flex:0 0 100px;width:100px;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid #E3E7DD;color:' + color + ';font-family:inherit;resize:none;overflow:hidden;line-height:1.3;max-height:2.9em;">' + esc(value) + "</textarea>";
   }
 
   function autosizeNoteFields() {
-    var fields = appEl.querySelectorAll("textarea[data-note-id]");
+    var fields = appEl.querySelectorAll("textarea[data-note-id], textarea[data-archive-note-id]");
     Array.prototype.forEach.call(fields, function (el) {
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight, 46) + "px";
@@ -357,12 +376,14 @@
       "body.compact li input{width:15px;height:15px;}" +
       "body.compact .note{font-size:11px;}" +
       "body.compact .general-note{padding:8px 10px;font-size:12px;margin-top:10px;}" +
+      "@keyframes confetti-fall{to{transform:translateY(110vh) rotate(720deg);opacity:.15;}}" +
+      "@keyframes celebration-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7);}60%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}100%{opacity:1;transform:translate(-50%,-50%) scale(1);}}" +
       "@media print{body{background:#fff;} input{-webkit-print-color-adjust:exact;}}" +
       "\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n<h1><span>" + esc(title) + '</span><button id="compactToggle" type="button">Compact</button></h1>\n<div class="date">' + esc(dateLabel) + "</div>\n" +
       groupsHtml +
       (note ? '<div class="general-note"><h2>NOTES</h2><p>' + esc(note) + "</p></div>" : "") +
       "\n</div>\n<script>\n" +
-      "(function(){var KEY=" + JSON.stringify(storageKey) + ";var COMPACT_KEY=\"exported-list:compact-pref\";function load(){try{return JSON.parse(localStorage.getItem(KEY)||\"{}\");}catch(e){return {};}}function save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}var state=load();document.querySelectorAll(\"input[data-item]\").forEach(function(cb){var id=cb.getAttribute(\"data-item\");if(state[id]!==undefined){cb.checked=!!state[id];}var li=cb.closest(\"li\");li.classList.toggle(\"checked\",cb.checked);cb.addEventListener(\"change\",function(){state[id]=cb.checked;save(state);li.classList.toggle(\"checked\",cb.checked);});});var toggleBtn=document.getElementById(\"compactToggle\");function applyCompact(on){document.body.classList.toggle(\"compact\",on);toggleBtn.textContent=on?\"Confort\":\"Compact\";}var savedCompact=false;try{savedCompact=localStorage.getItem(COMPACT_KEY)===\"1\";}catch(e){}applyCompact(savedCompact);toggleBtn.addEventListener(\"click\",function(){var on=!document.body.classList.contains(\"compact\");applyCompact(on);try{localStorage.setItem(COMPACT_KEY,on?\"1\":\"0\");}catch(e){}});})();" +
+      "(function(){var KEY=" + JSON.stringify(storageKey) + ";var COMPACT_KEY=\"exported-list:compact-pref\";function load(){try{return JSON.parse(localStorage.getItem(KEY)||\"{}\");}catch(e){return {};}}function save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}var state=load();var boxes=document.querySelectorAll(\"input[data-item]\");var total=boxes.length;function allDone(){var n=0;boxes.forEach(function(cb){if(cb.checked)n++;});return total>0&&n===total;}function celebrate(){if(document.getElementById(\"celebrationOverlay\"))return;var colors=[\"#3C8B5C\",\"#C1483D\",\"#C99A2E\",\"#7A5CB0\",\"#2F9E9E\",\"#C9598A\",\"#3E8FB0\"];var overlay=document.createElement(\"div\");overlay.id=\"celebrationOverlay\";overlay.style.cssText=\"position:fixed;inset:0;z-index:9999;overflow:hidden;\";for(var i=0;i<60;i++){var piece=document.createElement(\"div\");var color=colors[i%colors.length];var left=Math.random()*100;var delay=Math.random()*0.4;var duration=2.2+Math.random()*1.4;var size=6+Math.random()*6;var rotate=Math.random()*360;piece.style.cssText=\"position:absolute;top:-20px;left:\"+left+\"%;width:\"+size+\"px;height:\"+(size*0.4)+\"px;background:\"+color+\";opacity:.9;transform:rotate(\"+rotate+\"deg);animation:confetti-fall \"+duration+\"s ease-in \"+delay+\"s forwards;border-radius:2px;\";overlay.appendChild(piece);}var msg=document.createElement(\"div\");msg.style.cssText=\"position:absolute;top:40%;left:50%;background:#1E4632;color:#fff;padding:20px 26px;border-radius:16px;font-family:'Archivo Black',Inter,sans-serif;font-size:17px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;animation:celebration-pop .4s ease-out .15s forwards;max-width:80%;cursor:pointer;\";msg.textContent=\"\\uD83C\\uDF89 Bravo ! Tu as terminé les courses ! \\uD83C\\uDF89\";overlay.appendChild(msg);document.body.appendChild(overlay);overlay.addEventListener(\"click\",function(){overlay.remove();});setTimeout(function(){if(overlay.parentNode)overlay.remove();},4200);}var wasAllDone=allDone();boxes.forEach(function(cb){var id=cb.getAttribute(\"data-item\");if(state[id]!==undefined){cb.checked=!!state[id];}var li=cb.closest(\"li\");li.classList.toggle(\"checked\",cb.checked);cb.addEventListener(\"change\",function(){state[id]=cb.checked;save(state);li.classList.toggle(\"checked\",cb.checked);var isAllDone=allDone();if(!wasAllDone&&isAllDone){celebrate();}wasAllDone=isAllDone;});});var toggleBtn=document.getElementById(\"compactToggle\");function applyCompact(on){document.body.classList.toggle(\"compact\",on);toggleBtn.textContent=on?\"Confort\":\"Compact\";}var savedCompact=false;try{savedCompact=localStorage.getItem(COMPACT_KEY)===\"1\";}catch(e){}applyCompact(savedCompact);toggleBtn.addEventListener(\"click\",function(){var on=!document.body.classList.contains(\"compact\");applyCompact(on);try{localStorage.setItem(COMPACT_KEY,on?\"1\":\"0\");}catch(e){}});})();" +
       "\n</" + "script>\n</body>\n</html>";
   }
 
@@ -462,6 +483,10 @@
           var parsed = JSON.parse(res.value);
           if (parsed.rayons) state.rayons = parsed.rayons;
           if (parsed.catalog) state.catalog = parsed.catalog;
+          if (parsed.pieces) state.pieces = parsed.pieces;
+          if (parsed.savedConfigs) state.savedConfigs = parsed.savedConfigs;
+          if (parsed.activeRayonConfigId) state.activeRayonConfigId = parsed.activeRayonConfigId;
+          if (parsed.activePieceConfigId) state.activePieceConfigId = parsed.activePieceConfigId;
           if (parsed.list) state.list = parsed.list;
           if (parsed.notes) {
             state.notes = parsed.notes;
@@ -513,11 +538,44 @@
     render();
   }
 
+  function isListComplete() {
+    return state.list.length > 0 && state.list.every(function (i) { return i.checked; });
+  }
+
+  function celebrate() {
+    if (document.getElementById("celebrationOverlay")) return;
+    var colors = ["#3C8B5C", "#C1483D", "#C99A2E", "#7A5CB0", "#2F9E9E", "#C9598A", "#3E8FB0"];
+    var overlay = document.createElement("div");
+    overlay.id = "celebrationOverlay";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:9999;overflow:hidden;";
+    for (var i = 0; i < 60; i++) {
+      var piece = document.createElement("div");
+      var color = colors[i % colors.length];
+      var left = Math.random() * 100;
+      var delay = Math.random() * 0.4;
+      var duration = 2.2 + Math.random() * 1.4;
+      var size = 6 + Math.random() * 6;
+      var rotate = Math.random() * 360;
+      piece.style.cssText = "position:absolute;top:-20px;left:" + left + "%;width:" + size + "px;height:" + (size * 0.4) + "px;background:" + color + ";opacity:.9;transform:rotate(" + rotate + "deg);animation:confetti-fall " + duration + "s ease-in " + delay + "s forwards;border-radius:2px;";
+      overlay.appendChild(piece);
+    }
+    var msg = document.createElement("div");
+    msg.style.cssText = "position:absolute;top:40%;left:50%;background:#1E4632;color:#fff;padding:20px 26px;border-radius:16px;font-family:'Archivo Black',Inter,sans-serif;font-size:17px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;animation:celebration-pop .4s ease-out .15s forwards;max-width:80%;cursor:pointer;";
+    msg.textContent = "\uD83C\uDF89 Bravo ! Tu as terminé les courses ! \uD83C\uDF89";
+    overlay.appendChild(msg);
+    document.body.appendChild(overlay);
+    overlay.addEventListener("click", function () { overlay.remove(); });
+    setTimeout(function () { if (overlay.parentNode) overlay.remove(); }, 4200);
+  }
+
   function toggleChecked(productId) {
     var item = state.list.find(function (i) { return i.productId === productId; });
-    if (item) item.checked = !item.checked;
+    if (!item) return;
+    var wasComplete = isListComplete();
+    item.checked = !item.checked;
     scheduleSave();
     render();
+    if (!wasComplete && isListComplete()) celebrate();
   }
 
   function updateNote(productId, note) {
@@ -578,6 +636,16 @@
     render();
   }
 
+  function addRayon(name) {
+    name = (name || "").trim();
+    if (!name) return null;
+    var idx = state.rayons.length % PALETTE.length;
+    var rayon = { id: uid("r"), name: name, color: PALETTE[idx] };
+    state.rayons.push(rayon);
+    scheduleSave();
+    return rayon;
+  }
+
   function moveRayon(index, dir) {
     var j = index + dir;
     if (j < 0 || j >= state.rayons.length) return;
@@ -632,26 +700,244 @@
     render();
   }
 
+  /* ---------- Pièces de la maison (classement alternatif du catalogue) ---------- */
+  function pieceById(id) {
+    for (var i = 0; i < state.pieces.length; i++) if (state.pieces[i].id === id) return state.pieces[i];
+    return null;
+  }
+
+  function addPiece(name) {
+    name = (name || "").trim();
+    if (!name) return null;
+    var idx = state.pieces.length % PALETTE.length;
+    var piece = { id: uid("pc"), name: name, color: PALETTE[idx] };
+    state.pieces.push(piece);
+    scheduleSave();
+    return piece;
+  }
+
+  function renamePiece(id, name) {
+    var pc = pieceById(id);
+    if (pc) pc.name = name;
+    scheduleSave();
+  }
+
+  function updatePieceColor(id, color) {
+    var pc = pieceById(id);
+    if (pc) pc.color = color;
+    scheduleSave();
+    render();
+  }
+
+  function movePiece(index, dir) {
+    var j = index + dir;
+    if (j < 0 || j >= state.pieces.length) return;
+    var tmp = state.pieces[index];
+    state.pieces[index] = state.pieces[j];
+    state.pieces[j] = tmp;
+    scheduleSave();
+    render();
+  }
+
+  function deletePiece(id) {
+    state.catalog.forEach(function (p) { if (p.pieceId === id) p.pieceId = null; });
+    state.pieces = state.pieces.filter(function (pc) { return pc.id !== id; });
+    ui.confirmDeletePiece = null;
+    scheduleSave();
+    render();
+  }
+
+  function assignProductToPieceEnd(productId, pieceId) {
+    var idx = state.catalog.findIndex(function (p) { return p.id === productId; });
+    if (idx === -1) return;
+    var product = state.catalog[idx];
+    product.pieceId = pieceId;
+    state.catalog.splice(idx, 1);
+    var lastIdx = -1;
+    state.catalog.forEach(function (p, i) {
+      var pid = p.pieceId || null;
+      if (pid === (pieceId || null)) lastIdx = i;
+    });
+    state.catalog.splice(lastIdx + 1, 0, product);
+    scheduleSave();
+    render();
+  }
+
+  // Utilisée par les menus déroulants (contrairement au glisser-déposer, ne change pas
+  // la position de l'article dans le catalogue — évite de perturber l'autre vue).
+  function setProductPiece(productId, pieceId) {
+    var p = state.catalog.find(function (p) { return p.id === productId; });
+    if (!p) return;
+    p.pieceId = pieceId;
+    scheduleSave();
+    render();
+  }
+
+  function reorderProductsInPiece(pieceId, orderedIds) {
+    var key = pieceId || null;
+    var indices = [];
+    state.catalog.forEach(function (p, idx) { if ((p.pieceId || null) === key) indices.push(idx); });
+    var byId = {};
+    state.catalog.forEach(function (p) { if ((p.pieceId || null) === key) byId[p.id] = p; });
+    var reordered = orderedIds.map(function (id) { return byId[id]; }).filter(Boolean);
+    indices.forEach(function (idx, i) { if (reordered[i]) state.catalog[idx] = reordered[i]; });
+    scheduleSave();
+    render();
+  }
+
+  /* ---------- Configurations sauvegardées localement ---------- */
+  function saveCurrentConfig(name, type) {
+    name = (name || "").trim();
+    if (!name) return;
+    if (type === "rayons") {
+      var productsRayons = state.catalog.map(function (p) {
+        var r = rayonById(p.rayonId);
+        return { name: p.name, rayon: r ? r.name : null };
+      });
+      var cfgR = {
+        id: uid("cfg"),
+        type: "rayons",
+        name: name,
+        savedAt: new Date().toISOString(),
+        rayons: JSON.parse(JSON.stringify(state.rayons)),
+        products: productsRayons
+      };
+      state.savedConfigs.push(cfgR);
+      state.activeRayonConfigId = cfgR.id;
+    } else if (type === "pieces") {
+      var productsPieces = state.catalog.map(function (p) {
+        var pc = pieceById(p.pieceId);
+        return { name: p.name, piece: pc ? pc.name : null };
+      });
+      var cfgP = {
+        id: uid("cfg"),
+        type: "pieces",
+        name: name,
+        savedAt: new Date().toISOString(),
+        pieces: JSON.parse(JSON.stringify(state.pieces)),
+        products: productsPieces
+      };
+      state.savedConfigs.push(cfgP);
+      state.activePieceConfigId = cfgP.id;
+    } else {
+      return;
+    }
+    scheduleSave();
+    render();
+    showToast("Configuration \u00ab " + name + " \u00bb enregistrée !");
+  }
+
+  function loadConfig(id) {
+    var cfg = state.savedConfigs.find(function (c) { return c.id === id; });
+    if (!cfg) return;
+    if (cfg.type === "rayons") {
+      var oldRayonNameById = {};
+      state.rayons.forEach(function (r) { oldRayonNameById[r.id] = r.name; });
+      state.rayons = JSON.parse(JSON.stringify(cfg.rayons));
+
+      var byNameCurrent = {};
+      state.catalog.forEach(function (p) { byNameCurrent[p.name.toLowerCase()] = p; });
+      var mapByName = {};
+      cfg.products.forEach(function (entry) { mapByName[entry.name.toLowerCase()] = entry; });
+
+      // Réaffecte les produits déjà présents
+      state.catalog.forEach(function (p) {
+        var entry = mapByName[p.name.toLowerCase()];
+        var targetName = entry ? entry.rayon : oldRayonNameById[p.rayonId];
+        var r = targetName ? state.rayons.find(function (x) { return x.name.toLowerCase() === targetName.toLowerCase(); }) : null;
+        p.rayonId = r ? r.id : state.rayons[0].id;
+      });
+      // Rétablit les produits supprimés depuis l'enregistrement
+      var restored = 0;
+      cfg.products.forEach(function (entry) {
+        if (byNameCurrent[entry.name.toLowerCase()]) return;
+        var r = entry.rayon ? state.rayons.find(function (x) { return x.name.toLowerCase() === entry.rayon.toLowerCase(); }) : null;
+        state.catalog.push({ id: uid("p"), name: entry.name, rayonId: r ? r.id : state.rayons[0].id, pieceId: null });
+        restored++;
+      });
+      state.activeRayonConfigId = cfg.id;
+      showToast("Configuration \u00ab " + cfg.name + " \u00bb chargée" + (restored > 0 ? " (" + restored + " article(s) rétabli(s))" : "") + ".");
+    } else if (cfg.type === "pieces") {
+      var oldPieceNameById = {};
+      state.pieces.forEach(function (pc) { oldPieceNameById[pc.id] = pc.name; });
+      state.pieces = JSON.parse(JSON.stringify(cfg.pieces));
+
+      var byNameCurrentP = {};
+      state.catalog.forEach(function (p) { byNameCurrentP[p.name.toLowerCase()] = p; });
+      var mapByNameP = {};
+      cfg.products.forEach(function (entry) { mapByNameP[entry.name.toLowerCase()] = entry; });
+
+      state.catalog.forEach(function (p) {
+        var entry = mapByNameP[p.name.toLowerCase()];
+        var targetName = entry ? entry.piece : (p.pieceId ? oldPieceNameById[p.pieceId] : null);
+        var pc = targetName ? state.pieces.find(function (x) { return x.name.toLowerCase() === targetName.toLowerCase(); }) : null;
+        p.pieceId = pc ? pc.id : null;
+      });
+      var restoredP = 0;
+      cfg.products.forEach(function (entry) {
+        if (byNameCurrentP[entry.name.toLowerCase()]) return;
+        var pc = entry.piece ? state.pieces.find(function (x) { return x.name.toLowerCase() === entry.piece.toLowerCase(); }) : null;
+        state.catalog.push({ id: uid("p"), name: entry.name, rayonId: state.rayons[0].id, pieceId: pc ? pc.id : null });
+        restoredP++;
+      });
+      state.activePieceConfigId = cfg.id;
+      showToast("Configuration \u00ab " + cfg.name + " \u00bb chargée" + (restoredP > 0 ? " (" + restoredP + " article(s) rétabli(s))" : "") + ".");
+    } else {
+      return;
+    }
+    ui.confirmDeleteConfig = null;
+    scheduleSave();
+    render();
+  }
+
+  function deleteConfig(id) {
+    state.savedConfigs = state.savedConfigs.filter(function (c) { return c.id !== id; });
+    if (state.activeRayonConfigId === id) state.activeRayonConfigId = null;
+    if (state.activePieceConfigId === id) state.activePieceConfigId = null;
+    ui.confirmDeleteConfig = null;
+    scheduleSave();
+    render();
+  }
+
+  // Bouton "Enregistrer" simple : écrase la configuration actuellement chargée pour cet
+  // onglet si elle existe encore, sinon en crée une nouvelle avec un nom généré automatiquement.
+  function quickSaveConfig(type) {
+    var activeId = type === "rayons" ? state.activeRayonConfigId : state.activePieceConfigId;
+    var existing = activeId ? state.savedConfigs.find(function (c) { return c.id === activeId && c.type === type; }) : null;
+    if (existing) {
+      if (type === "rayons") {
+        existing.rayons = JSON.parse(JSON.stringify(state.rayons));
+        existing.products = state.catalog.map(function (p) {
+          var r = rayonById(p.rayonId);
+          return { name: p.name, rayon: r ? r.name : null };
+        });
+      } else {
+        existing.pieces = JSON.parse(JSON.stringify(state.pieces));
+        existing.products = state.catalog.map(function (p) {
+          var pc = pieceById(p.pieceId);
+          return { name: p.name, piece: pc ? pc.name : null };
+        });
+      }
+      existing.savedAt = new Date().toISOString();
+      scheduleSave();
+      render();
+      showToast("Configuration \u00ab " + existing.name + " \u00bb mise à jour.");
+    } else {
+      var autoName = (type === "rayons" ? "Rayons" : "Pièces") + " – " + new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      saveCurrentConfig(autoName, type);
+    }
+  }
+
   function submitNewProduct() {
     var nameInput = document.getElementById("newProductName");
     var name = nameInput ? nameInput.value.trim() : "";
     if (!name) return;
-    var rayonId;
-    if (ui.addingRayon) {
-      var rNameInput = document.getElementById("newRayonNameInput");
-      var rname = rNameInput ? rNameInput.value.trim() : "";
-      if (!rname) return;
-      var id = uid("r");
-      var idx = state.rayons.length % PALETTE.length;
-      state.rayons.push({ id: id, name: rname, color: PALETTE[idx] });
-      rayonId = id;
-    } else {
-      var sel = document.getElementById("newProductRayonSelect");
-      rayonId = sel ? sel.value : state.rayons[0].id;
-    }
-    state.catalog.push({ id: uid("p"), name: name, rayonId: rayonId });
+    var sel = document.getElementById("newProductRayonSelect");
+    var rayonId = sel ? sel.value : state.rayons[0].id;
+    var pSel = document.getElementById("newProductPieceSelect");
+    var pieceId = pSel && pSel.value ? pSel.value : null;
+    state.catalog.push({ id: uid("p"), name: name, rayonId: rayonId, pieceId: pieceId });
     ui.showAdd = false;
-    ui.addingRayon = false;
     scheduleSave();
     render();
   }
@@ -683,10 +969,10 @@
 
   // En-tête de rayon repliable : replié, n'affiche que le nom du rayon et un chiffre
   // (nombre d'articles cochés dans "Ma liste", ou ajoutés à la liste dans le Catalogue).
-  function rayonHeaderRow(rayon, count, totalInGroup, collapsed, toggleAction, compact) {
+  function rayonHeaderRow(rayon, count, totalInGroup, collapsed, toggleAction, compact, alwaysShowCount) {
     return '<button data-action="' + toggleAction + '" data-id="' + rayon.id + '" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;cursor:pointer;text-align:left;">' +
       rayonTag(rayon, compact) +
-      (collapsed ? '<span style="font-size:' + (compact ? 11 : 12) + 'px;color:#5f6b62;background:#fff;padding:2px 9px;border-radius:10px;flex-shrink:0;">' + count + "</span>" : "") +
+      (collapsed || alwaysShowCount ? '<span style="font-size:' + (compact ? 11 : 12) + 'px;color:#5f6b62;background:#fff;padding:2px 9px;border-radius:10px;flex-shrink:0;">' + count + "</span>" : "") +
       '<span style="margin-left:auto;color:#93998D;flex-shrink:0;">' + icon(collapsed ? "chevronDown" : "chevronUp", compact ? 14 : 16) + "</span>" +
       "</button>";
   }
@@ -769,7 +1055,7 @@
     itemsByRayon.forEach(function (g) {
       var collapsed = !!ui.collapsedListRayons[g.rayon.id];
       html += '<section style="margin-bottom:' + (compact ? 8 : 16) + 'px;">' +
-        rayonHeaderRow(g.rayon, g.checkedCount, g.items.length, collapsed, "toggle-list-rayon", compact);
+        rayonHeaderRow(g.rayon, g.items.length - g.checkedCount, g.items.length, collapsed, "toggle-list-rayon", compact, true);
       if (!collapsed) {
         html += '<div style="background:#fff;border-radius:' + (compact ? 8 : 10) + 'px;overflow:hidden;margin-top:' + (compact ? 3 : 6) + 'px;">';
         g.items.forEach(function (i, idx) {
@@ -808,15 +1094,20 @@
   function renderCatalogueTab() {
     var inListIds = getInListIds();
     var manage = ui.manage;
-    var catalogByRayon = state.rayons
-      .map(function (r) { return { rayon: r, items: state.catalog.filter(function (p) { return p.rayonId === r.id; }) }; })
-      .filter(function (g) { return g.items.length > 0 || manage; });
 
-    var html = '<div style="display:flex;gap:8px;margin-bottom:14px;">' +
+    var html = '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
       '<button data-action="toggle-show-add" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 12px;background:#1E4632;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">' +
       icon("plus", 16) + "Ajouter un produit</button>" +
       '<button data-action="toggle-manage" style="padding:10px 12px;background:' + (manage ? "#1E4632" : "#fff") + ";color:" + (manage ? "#fff" : "#1E4632") + ';border:1px solid #1E4632;border-radius:8px;cursor:pointer;">' +
       icon("settings", 16) + "</button></div>";
+
+    html += '<div style="display:flex;gap:6px;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:6px;background:#fff;padding:3px;border-radius:9px;flex:1;">' +
+      '<button data-action="set-catalog-view" data-view="rayons" style="flex:1;padding:7px 8px;background:' + (ui.catalogView === "rayons" ? "#1E4632" : "transparent") + ";color:" + (ui.catalogView === "rayons" ? "#fff" : "#4b5a52") + ';border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Rayons</button>' +
+      '<button data-action="set-catalog-view" data-view="pieces" style="flex:1;padding:7px 8px;background:' + (ui.catalogView === "pieces" ? "#1E4632" : "transparent") + ";color:" + (ui.catalogView === "pieces" ? "#fff" : "#4b5a52") + ';border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Pièces (maison)</button>' +
+      "</div>" +
+      '<button data-action="quick-save-config" data-config-type="' + ui.catalogView + '" style="width:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;color:#1E4632;border:1px solid #1E4632;border-radius:9px;cursor:pointer;" aria-label="Enregistrer la configuration">' + icon("save", 16) + "</button>" +
+      "</div>";
 
     if (ui.toastMsg) {
       html += '<div style="background:#1E4632;color:#fff;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;text-align:center;">' + esc(ui.toastMsg) + "</div>";
@@ -824,21 +1115,57 @@
 
     if (ui.showAdd) {
       html += '<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:16px;">' +
-        '<input id="newProductName" placeholder="Nom du produit" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;" />';
-      if (!ui.addingRayon) {
-        html += '<select id="newProductRayonSelect" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:8px;">' +
-          state.rayons.map(function (r) { return '<option value="' + r.id + '">' + esc(r.name) + "</option>"; }).join("") +
-          "</select>" +
-          '<button data-action="toggle-adding-rayon" style="background:none;border:none;color:#1E4632;font-size:13px;cursor:pointer;padding:2px 0;margin-bottom:10px;">+ Créer un nouveau rayon</button>';
-      } else {
-        html += '<input id="newRayonNameInput" placeholder="Nom du nouveau rayon" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:8px;" />' +
-          '<button data-action="toggle-adding-rayon" style="background:none;border:none;color:#5f6b62;font-size:13px;cursor:pointer;padding:2px 0;margin-bottom:10px;">Choisir un rayon existant</button>';
-      }
+        '<input id="newProductName" placeholder="Nom du produit" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;" />' +
+        '<label style="font-size:12px;color:#5f6b62;display:block;margin-bottom:4px;">Rayon</label>' +
+        '<select id="newProductRayonSelect" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;">' +
+        state.rayons.map(function (r) { return '<option value="' + r.id + '">' + esc(r.name) + "</option>"; }).join("") +
+        "</select>" +
+        '<label style="font-size:12px;color:#5f6b62;display:block;margin-bottom:4px;">Pièce (maison)</label>' +
+        '<select id="newProductPieceSelect" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;">' +
+        '<option value="">Non classé</option>' +
+        state.pieces.map(function (pc) { return '<option value="' + pc.id + '">' + esc(pc.name) + "</option>"; }).join("") +
+        "</select>";
       html += '<div style="display:flex;gap:8px;">' +
         '<button data-action="submit-new-product" style="flex:1;padding:9px 10px;background:#1E4632;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Ajouter</button>' +
         '<button data-action="cancel-new-product" style="padding:9px 14px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:6px;font-size:14px;cursor:pointer;">Annuler</button>' +
         "</div></div>";
     }
+
+    if (ui.catalogView === "rayons") {
+      html += renderRayonsView(inListIds, manage);
+    } else {
+      html += renderPiecesView(inListIds, manage);
+    }
+
+    return html;
+  }
+
+  function renderRayonsView(inListIds, manage) {
+    var html = "";
+    if (!manage && state.activeRayonConfigId) {
+      var activeRayonCfg = state.savedConfigs.find(function (c) { return c.id === state.activeRayonConfigId; });
+      if (activeRayonCfg) {
+        html += '<div style="font-size:12px;color:#5f6b62;margin-bottom:10px;">Configuration : <strong style="color:#1E4632;">' + esc(activeRayonCfg.name) + "</strong></div>";
+      }
+    }
+    if (manage) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:14px;">' +
+        '<button data-action="toggle-show-add-rayon" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;background:#fff;color:#1E4632;border:1px dashed #1E4632;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">' +
+        icon("plus", 15) + "Ajouter un rayon</button>" +
+        "</div>";
+      if (ui.showAddRayon) {
+        html += '<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:16px;">' +
+          '<input id="newRayonNameStandalone" placeholder="Nom du rayon (ex: Épicerie fine)" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;" />' +
+          '<div style="display:flex;gap:8px;">' +
+          '<button data-action="submit-new-rayon" style="flex:1;padding:9px 10px;background:#1E4632;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Ajouter</button>' +
+          '<button data-action="cancel-new-rayon" style="padding:9px 14px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:6px;font-size:14px;cursor:pointer;">Annuler</button>' +
+          "</div></div>";
+      }
+      html += renderConfigPanel("rayons");
+    }
+    var catalogByRayon = state.rayons
+      .map(function (r) { return { rayon: r, items: state.catalog.filter(function (p) { return p.rayonId === r.id; }) }; })
+      .filter(function (g) { return g.items.length > 0 || manage; });
 
     catalogByRayon.forEach(function (g) {
       var rIndex = state.rayons.findIndex(function (r) { return r.id === g.rayon.id; });
@@ -874,7 +1201,7 @@
       }
       g.items.forEach(function (p, idx) {
         var active = !!inListIds[p.id];
-        html += '<div data-sortable-id="product:' + p.id + '" data-sortable-group="products:' + g.rayon.id + '" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 8px 10px 14px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';background:#fff;">';
+        html += '<div data-sortable-id="product:' + p.id + '" data-sortable-group="products:' + g.rayon.id + '" data-dblclick-edit="' + p.id + '" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 8px 10px 14px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';background:#fff;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;">';
         if (manage) {
           html += '<span data-drag-handle="product:' + p.id + '" style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#93998D;cursor:grab;touch-action:none;">' + icon("grip", 16) + "</span>" +
             '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
@@ -884,6 +1211,10 @@
             noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52") +
             '<select data-product-rayon-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
             state.rayons.map(function (r) { return '<option value="' + r.id + '"' + (r.id === p.rayonId ? " selected" : "") + ">" + esc(r.name) + "</option>"; }).join("") +
+            "</select>" +
+            '<select data-product-piece-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
+            '<option value="">Non classé</option>' +
+            state.pieces.map(function (pc) { return '<option value="' + pc.id + '"' + (pc.id === p.pieceId ? " selected" : "") + ">" + esc(pc.name) + "</option>"; }).join("") +
             "</select>" +
             '<button data-action="delete-product" data-id="' + p.id + '" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 14, "#C1483D") + "</button>";
         } else {
@@ -901,6 +1232,189 @@
     return html;
   }
 
+  function renderPiecesView(inListIds, manage) {
+    var html = "";
+    if (!manage && state.activePieceConfigId) {
+      var activePieceCfg = state.savedConfigs.find(function (c) { return c.id === state.activePieceConfigId; });
+      if (activePieceCfg) {
+        html += '<div style="font-size:12px;color:#5f6b62;margin-bottom:10px;">Configuration : <strong style="color:#1E4632;">' + esc(activePieceCfg.name) + "</strong></div>";
+      }
+    }
+    if (manage) {
+      html += '<div style="display:flex;gap:8px;margin-bottom:14px;">' +
+        '<button data-action="toggle-show-add-piece" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;background:#fff;color:#1E4632;border:1px dashed #1E4632;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">' +
+        icon("plus", 15) + "Ajouter une pièce</button>" +
+        "</div>";
+      if (ui.showAddPiece) {
+        html += '<div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:16px;">' +
+          '<input id="newPieceNameStandalone" placeholder="Nom de la pièce (ex: Cuisine)" style="width:100%;padding:9px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;margin-bottom:10px;" />' +
+          '<div style="display:flex;gap:8px;">' +
+          '<button data-action="submit-new-piece" style="flex:1;padding:9px 10px;background:#1E4632;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">Ajouter</button>' +
+          '<button data-action="cancel-new-piece" style="padding:9px 14px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:6px;font-size:14px;cursor:pointer;">Annuler</button>' +
+          "</div></div>";
+      }
+      html += renderConfigPanel("pieces");
+    }
+
+    if (state.pieces.length === 0) {
+      html += '<div style="text-align:center;color:#5f6b62;margin:30px 0;font-size:13px;line-height:1.6;">Aucune pièce créée pour l\'instant.' + (manage ? "" : '<br/>Passe en mode gestion pour en créer une.') + "</div>";
+    }
+
+    var groups = state.pieces.map(function (pc) {
+      return { piece: pc, key: pc.id, items: state.catalog.filter(function (p) { return p.pieceId === pc.id; }) };
+    });
+    var unassigned = state.catalog.filter(function (p) {
+      return !p.pieceId || !pieceById(p.pieceId);
+    });
+    groups.push({ piece: { id: "unassigned", name: "Non classé", color: "#93998D" }, key: "unassigned", items: unassigned, isUnassigned: true });
+
+    groups.forEach(function (g) {
+      if (g.items.length === 0 && !manage && !g.isUnassigned) return;
+      if (g.items.length === 0 && g.isUnassigned) return;
+      var pIndex = state.pieces.findIndex(function (pc) { return pc.id === g.piece.id; });
+      var collapsed = !manage && !!ui.collapsedPieces[g.key];
+      var inListCount = g.items.filter(function (p) { return inListIds[p.id]; }).length;
+      html += '<section style="margin-bottom:16px;">';
+      if (manage && !g.isUnassigned) {
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+          '<input data-piece-name-id="' + g.piece.id + '" value="' + esc(g.piece.name) + '" style="flex:1;min-width:0;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:13px;" />' +
+          '<input type="color" data-piece-color-id="' + g.piece.id + '" value="' + g.piece.color + '" style="width:32px;height:30px;padding:1px;border-radius:6px;border:1px solid #D6DBD0;cursor:pointer;flex-shrink:0;" />' +
+          '<button data-action="move-piece" data-index="' + pIndex + '" data-dir="-1" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronUp", 16) + "</button>" +
+          '<button data-action="move-piece" data-index="' + pIndex + '" data-dir="1" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("chevronDown", 16) + "</button>" +
+          '<button data-action="delete-piece" data-id="' + g.piece.id + '" style="width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</button>" +
+          "</div>";
+        if (ui.confirmDeletePiece === g.piece.id) {
+          html += '<div style="background:#fff;border:1px solid #C1483D;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;">' +
+            "Supprimer la pièce \u00ab " + esc(g.piece.name) + " \u00bb ? Les produits qu'elle contient repasseront en \u00ab Non classé \u00bb." +
+            '<div style="display:flex;gap:8px;margin-top:8px;">' +
+            '<button data-action="confirm-delete-piece-yes" data-id="' + g.piece.id + '" style="flex:1;padding:6px 10px;background:#C1483D;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Confirmer</button>' +
+            '<button data-action="confirm-delete-piece-no" style="padding:6px 12px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:6px;font-size:13px;cursor:pointer;">Annuler</button>' +
+            "</div></div>";
+        }
+      } else if (g.isUnassigned) {
+        html += '<div style="margin-bottom:6px;font-size:12px;color:#5f6b62;font-weight:600;letter-spacing:.4px;">NON CLASSÉ</div>';
+      } else {
+        html += '<div style="margin-bottom:6px;">' + rayonHeaderRow(g.piece, inListCount, g.items.length, collapsed, "toggle-piece", false) + "</div>";
+      }
+      if (collapsed) {
+        html += "</section>";
+        return;
+      }
+      html += '<div data-piece-dropzone="' + g.key + '" style="background:#fff;border-radius:10px;overflow:hidden;min-height:44px;transition:box-shadow .15s;">';
+      if (g.items.length === 0) {
+        html += '<div style="padding:12px 14px;font-size:13px;color:#94998f;">Glisse un produit ici</div>';
+      }
+      g.items.forEach(function (p, idx) {
+        var active = !!inListIds[p.id];
+        html += '<div data-sortable-id="product:' + p.id + '" data-sortable-group="pieces:' + g.key + '" data-dblclick-edit="' + p.id + '" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 8px 10px 14px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';background:#fff;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;">';
+        if (manage) {
+          html += '<span data-drag-handle="product:' + p.id + '" style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#93998D;cursor:grab;touch-action:none;">' + icon("grip", 16) + "</span>";
+        }
+        html += '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
+          '<span style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:' + (active ? "#1E4632" : "#F1F4EE") + ";color:" + (active ? "#fff" : "#1E4632") + ";border:" + (active ? "none" : "1px solid #D6DBD0") + ';">' +
+          icon(active ? "check" : "plus", 13) + "</span></button>";
+        if (manage) {
+          html += '<input data-product-name-id="' + p.id + '" value="' + esc(p.name) + '" style="flex:1 1 140px;min-width:110px;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;" />' +
+            noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52") +
+            '<select data-product-rayon-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
+            state.rayons.map(function (r) { return '<option value="' + r.id + '"' + (r.id === p.rayonId ? " selected" : "") + ">" + esc(r.name) + "</option>"; }).join("") +
+            "</select>" +
+            '<select data-product-piece-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
+            '<option value="">Non classé</option>' +
+            state.pieces.map(function (pc) { return '<option value="' + pc.id + '"' + (pc.id === p.pieceId ? " selected" : "") + ">" + esc(pc.name) + "</option>"; }).join("") +
+            "</select>" +
+            '<button data-action="delete-product" data-id="' + p.id + '" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 14, "#C1483D") + "</button>";
+        } else {
+          html += '<span style="flex:1 1 140px;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;">' + esc(p.name) + "</span>" +
+            noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52");
+        }
+        html += "</div>";
+      });
+      html += "</div></section>";
+    });
+
+    return html;
+  }
+
+  function renderConfigPanel(type) {
+    var configs = state.savedConfigs.filter(function (c) { return c.type === type; });
+    var label = type === "rayons" ? "de rayons" : "de pièces";
+    var html = '<div style="background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:16px;">' +
+      '<button data-action="toggle-config-panel" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-weight:600;color:#1E4632;">' +
+      "Configurations " + label + " enregistrées (" + configs.length + ")" +
+      icon(ui.configPanelOpen ? "chevronUp" : "chevronDown", 15) +
+      "</button>";
+    if (ui.configPanelOpen) {
+      html += '<div style="margin-top:12px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<input id="newConfigName" placeholder="Nom de cette configuration" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid #D6DBD0;font-size:13px;" />' +
+        '<button data-action="save-config" data-config-type="' + type + '" style="padding:8px 12px;background:#1E4632;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Enregistrer</button>' +
+        "</div>";
+      if (configs.length === 0) {
+        html += '<div style="font-size:12px;color:#5f6b62;">Aucune configuration ' + label + ' enregistrée. Organise tes ' + (type === "rayons" ? "rayons" : "pièces") + ' puis enregistre l\'état actuel pour pouvoir le retrouver plus tard.</div>';
+      }
+      configs.forEach(function (c) {
+        var dateLabel = new Date(c.savedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #EDEFE9;">' +
+          '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(c.name) + '</div><div style="font-size:11px;color:#94998f;">' + esc(dateLabel) + "</div></div>" +
+          '<button data-action="load-config" data-id="' + c.id + '" style="padding:6px 10px;background:#F1F4EE;color:#1E4632;border:1px solid #1E4632;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Charger</button>' +
+          '<button data-action="delete-config" data-id="' + c.id + '" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 13, "#C1483D") + "</button>" +
+          "</div>";
+        if (ui.confirmDeleteConfig === c.id) {
+          html += '<div style="background:#F1F4EE;border-radius:6px;padding:8px;margin-bottom:4px;font-size:12px;">Supprimer cette configuration ?' +
+            '<div style="display:flex;gap:6px;margin-top:6px;">' +
+            '<button data-action="confirm-delete-config-yes" data-id="' + c.id + '" style="flex:1;padding:5px 8px;background:#C1483D;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;">Confirmer</button>' +
+            '<button data-action="confirm-delete-config-no" style="padding:5px 10px;background:#fff;color:#5f6b62;border:1px solid #D6DBD0;border-radius:5px;font-size:12px;cursor:pointer;">Annuler</button>' +
+            "</div></div>";
+        }
+      });
+      html += "</div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function toggleArchiveItemChecked(archiveId, index) {
+    var a = state.archives.find(function (x) { return x.id === archiveId; });
+    if (!a || !a.items[index]) return;
+    a.items[index].checked = !a.items[index].checked;
+    scheduleSave();
+    render();
+  }
+
+  function updateArchiveItemNote(archiveId, index, note) {
+    var a = state.archives.find(function (x) { return x.id === archiveId; });
+    if (!a || !a.items[index]) return;
+    a.items[index].note = note;
+    scheduleSave();
+  }
+
+  function updateArchiveNote(archiveId, note) {
+    var a = state.archives.find(function (x) { return x.id === archiveId; });
+    if (!a) return;
+    a.note = note;
+    scheduleSave();
+  }
+
+  function groupArchiveItems(a) {
+    var order = state.rayons.map(function (r) { return r.name; });
+    var colorByName = {};
+    state.rayons.forEach(function (r) { colorByName[r.name] = r.color; });
+    var byName = {};
+    a.items.forEach(function (it, idx) {
+      var key = it.rayon || "";
+      if (!byName[key]) byName[key] = [];
+      byName[key].push({ item: it, index: idx });
+    });
+    var names = Object.keys(byName).sort(function (x, y) {
+      var ix = order.indexOf(x), iy = order.indexOf(y);
+      return (ix === -1 ? 999 : ix) - (iy === -1 ? 999 : iy);
+    });
+    return names.map(function (n) {
+      return { name: n || "Autre", color: colorByName[n] || "#93998D", entries: byName[n] };
+    });
+  }
+
   function renderArchivesTab() {
     var html = "";
     if (state.archives.length === 0) {
@@ -910,9 +1424,10 @@
     state.archives.forEach(function (a) {
       var open = ui.openArchiveId === a.id;
       var dateLabel = new Date(a.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      var doneCount = a.items.filter(function (it) { return it.checked; }).length;
       html += '<div style="background:#fff;border-radius:10px;margin-bottom:10px;overflow:hidden;">' +
         '<button data-action="toggle-archive" data-id="' + a.id + '" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:transparent;border:none;text-align:left;cursor:pointer;">' +
-        '<div><div style="font-size:14px;font-weight:600;">' + esc(dateLabel) + '</div><div style="font-size:12px;color:#5f6b62;">' + a.items.length + " article" + (a.items.length > 1 ? "s" : "") + "</div></div>" +
+        '<div><div style="font-size:14px;font-weight:600;">' + esc(dateLabel) + '</div><div style="font-size:12px;color:#5f6b62;">' + doneCount + " sur " + a.items.length + " coché" + (a.items.length > 1 ? "s" : "") + "</div></div>" +
         '<div style="display:flex;align-items:center;gap:6px;">' +
         '<span data-action="share-archive" data-id="' + a.id + '" role="button" aria-label="Partager cette liste" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("share", 15, "#1E4632") + "</span>" +
         '<span data-action="delete-archive" data-id="' + a.id + '" role="button" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 15, "#C1483D") + "</span>" +
@@ -920,16 +1435,36 @@
         "</div></button>";
       if (open) {
         html += '<div style="padding:0 14px 14px;">';
-        a.items.forEach(function (it) {
-          html += '<div style="display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:' + (it.checked ? "#94998f" : "#182019") + ';">' +
-            '<span style="text-decoration:' + (it.checked ? "line-through" : "none") + ';">' + esc(it.name) + ' <span style="font-size:11px;color:#94998f;">(' + esc(it.rayon) + ')</span></span>' +
-            (it.note ? '<span style="color:#5f6b62;font-size:12px;">' + esc(it.note) + "</span>" : "") +
-            "</div>";
+        var groups = groupArchiveItems(a);
+        groups.forEach(function (g) {
+          var collapseKey = a.id + "|" + g.name;
+          var collapsed = !!ui.collapsedArchiveRayons[collapseKey];
+          var groupChecked = g.entries.filter(function (entry) { return entry.item.checked; }).length;
+          var remaining = g.entries.length - groupChecked;
+          html += '<div style="margin-bottom:12px;">' +
+            rayonHeaderRow({ id: collapseKey, name: g.name, color: g.color }, remaining, g.entries.length, collapsed, "toggle-archive-rayon", false, true);
+          if (!collapsed) {
+            html += '<div style="background:#F8FAF7;border-radius:8px;overflow:hidden;margin-top:6px;">';
+            g.entries.forEach(function (entry, idx) {
+              var it = entry.item;
+              html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 10px;border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';">' +
+                '<button data-action="toggle-archive-item" data-archive-id="' + a.id + '" data-item-index="' + entry.index + '" style="flex:1 1 auto;min-width:100px;display:flex;align-items:center;gap:9px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:14px;padding:0;color:' + (it.checked ? "#94998f" : "#182019") + ';">';
+              if (it.checked) {
+                html += '<span style="width:17px;height:17px;border-radius:4px;background:#1E4632;flex-shrink:0;display:flex;align-items:center;justify-content:center;">' + icon("check", 11, "#fff") + "</span>";
+              } else {
+                html += '<span style="width:17px;height:17px;border-radius:4px;border:2px solid #B7C0B4;flex-shrink:0;"></span>';
+              }
+              html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:' + (it.checked ? "line-through" : "none") + ';">' + esc(it.name) + "</span></button>" +
+                noteFieldHtml(a.id + "|" + entry.index, it.note || "", "#5f6b62", "data-archive-note-id") +
+                "</div>";
+            });
+            html += "</div>";
+          }
+          html += "</div>";
         });
-        if (a.note) {
-          html += '<div style="margin-top:8px;font-size:13px;color:#4b5a52;background:#F1F4EE;border-radius:6px;padding:8px;">' + esc(a.note) + "</div>";
-        }
-        html += "</div>";
+        html += '<div class="aisle-tag" style="font-size:11px;color:#5f6b62;margin-bottom:5px;letter-spacing:.4px;">NOTES</div>' +
+          '<textarea data-archive-general-note-id="' + a.id + '" placeholder="Idée de repas, autre chose à ne pas oublier…" rows="2" style="width:100%;background:#F1F4EE;border-radius:8px;border:1px solid #E3E7DD;padding:8px 10px;font-size:13px;font-family:inherit;color:#182019;resize:vertical;">' + esc(a.note || "") + "</textarea>" +
+          "</div>";
       }
       html += "</div>";
     });
@@ -985,6 +1520,12 @@
 
   /* ---------- Délégation d'événements ---------- */
   function handleClick(e) {
+    if (suppressNextRowClick) {
+      suppressNextRowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     var el = e.target.closest("[data-action]");
     if (!el) return;
     var action = el.getAttribute("data-action");
@@ -1014,10 +1555,9 @@
       case "confirm-delete-rayon-no": ui.confirmDeleteRayon = null; render(); break;
       case "set-tab": ui.tab = el.getAttribute("data-tab"); ui.showAdd = false; render(); break;
       case "toggle-manage": ui.manage = !ui.manage; render(); break;
-      case "toggle-show-add": ui.showAdd = !ui.showAdd; ui.addingRayon = false; render(); break;
-      case "toggle-adding-rayon": ui.addingRayon = !ui.addingRayon; render(); break;
+      case "toggle-show-add": ui.showAdd = !ui.showAdd; render(); break;
       case "submit-new-product": submitNewProduct(); break;
-      case "cancel-new-product": ui.showAdd = false; ui.addingRayon = false; render(); break;
+      case "cancel-new-product": ui.showAdd = false; render(); break;
       case "archive-list": archiveList(); break;
       case "share-list": shareList(); break;
       case "confirm-reset-open": ui.confirmReset = true; render(); break;
@@ -1026,8 +1566,64 @@
       case "toggle-compact": ui.compact = !ui.compact; render(); break;
       case "toggle-list-rayon": ui.collapsedListRayons[id] = !ui.collapsedListRayons[id]; render(); break;
       case "toggle-catalog-rayon": ui.collapsedCatalogRayons[id] = !ui.collapsedCatalogRayons[id]; render(); break;
+      case "toggle-piece": ui.collapsedPieces[id] = !ui.collapsedPieces[id]; render(); break;
+      case "set-catalog-view": ui.catalogView = el.getAttribute("data-view"); ui.showAdd = false; render(); break;
+      case "toggle-show-add-rayon": ui.showAddRayon = !ui.showAddRayon; render(); break;
+      case "cancel-new-rayon": ui.showAddRayon = false; render(); break;
+      case "submit-new-rayon": {
+        var rayonNameInput = document.getElementById("newRayonNameStandalone");
+        var rayonNameVal = rayonNameInput ? rayonNameInput.value.trim() : "";
+        if (rayonNameVal) {
+          addRayon(rayonNameVal);
+          ui.showAddRayon = false;
+          render();
+        }
+        break;
+      }
+      case "toggle-show-add-piece": ui.showAddPiece = !ui.showAddPiece; render(); break;
+      case "cancel-new-piece": ui.showAddPiece = false; render(); break;
+      case "submit-new-piece": {
+        var pieceNameInput = document.getElementById("newPieceNameStandalone");
+        var pieceNameVal = pieceNameInput ? pieceNameInput.value.trim() : "";
+        if (pieceNameVal) {
+          addPiece(pieceNameVal);
+          ui.showAddPiece = false;
+          render();
+        }
+        break;
+      }
+      case "quick-save-config": quickSaveConfig(el.getAttribute("data-config-type")); break;
+      case "move-piece": movePiece(parseInt(el.getAttribute("data-index"), 10), parseInt(el.getAttribute("data-dir"), 10)); break;
+      case "delete-piece":
+        if (ui.confirmDeletePiece === id) {
+          ui.confirmDeletePiece = null;
+          render();
+        } else {
+          ui.confirmDeletePiece = id;
+          render();
+        }
+        break;
+      case "confirm-delete-piece-yes": deletePiece(id); break;
+      case "confirm-delete-piece-no": ui.confirmDeletePiece = null; render(); break;
+      case "toggle-config-panel": ui.configPanelOpen = !ui.configPanelOpen; render(); break;
+      case "save-config": {
+        var cfgNameInput = document.getElementById("newConfigName");
+        var cfgName = cfgNameInput ? cfgNameInput.value.trim() : "";
+        var cfgType = el.getAttribute("data-config-type");
+        if (cfgName) saveCurrentConfig(cfgName, cfgType);
+        break;
+      }
+      case "load-config": loadConfig(id); break;
+      case "delete-config":
+        if (ui.confirmDeleteConfig === id) { ui.confirmDeleteConfig = null; render(); }
+        else { ui.confirmDeleteConfig = id; render(); }
+        break;
+      case "confirm-delete-config-yes": deleteConfig(id); break;
+      case "confirm-delete-config-no": ui.confirmDeleteConfig = null; render(); break;
       case "notes-open": ui.notesOpen = true; render(); break;
       case "toggle-archive": ui.openArchiveId = ui.openArchiveId === id ? null : id; render(); break;
+      case "toggle-archive-item": toggleArchiveItemChecked(el.getAttribute("data-archive-id"), parseInt(el.getAttribute("data-item-index"), 10)); break;
+      case "toggle-archive-rayon": ui.collapsedArchiveRayons[id] = !ui.collapsedArchiveRayons[id]; render(); break;
       case "delete-archive": deleteArchive(id); break;
       case "share-archive": {
         var arcS = state.archives.find(function (x) { return x.id === id; });
@@ -1043,6 +1639,13 @@
       updateNote(t.getAttribute("data-note-id"), t.value);
       t.style.height = "auto";
       t.style.height = Math.min(t.scrollHeight, 46) + "px";
+    } else if (t.hasAttribute("data-archive-note-id")) {
+      var parts = t.getAttribute("data-archive-note-id").split("|");
+      updateArchiveItemNote(parts[0], parseInt(parts[1], 10), t.value);
+      t.style.height = "auto";
+      t.style.height = Math.min(t.scrollHeight, 46) + "px";
+    } else if (t.hasAttribute("data-archive-general-note-id")) {
+      updateArchiveNote(t.getAttribute("data-archive-general-note-id"), t.value);
     } else if (t.id === "listNoteInput") {
       state.listNote = t.value;
       scheduleSave();
@@ -1050,6 +1653,8 @@
       renameRayon(t.getAttribute("data-rayon-name-id"), t.value);
     } else if (t.hasAttribute("data-product-name-id")) {
       renameProduct(t.getAttribute("data-product-name-id"), t.value);
+    } else if (t.hasAttribute("data-piece-name-id")) {
+      renamePiece(t.getAttribute("data-piece-name-id"), t.value);
     }
   }
 
@@ -1059,10 +1664,15 @@
       updateRayonColor(t.getAttribute("data-rayon-color-id"), t.value);
     } else if (t.hasAttribute("data-product-rayon-id")) {
       changeProductRayon(t.getAttribute("data-product-rayon-id"), t.value);
+    } else if (t.hasAttribute("data-product-piece-id")) {
+      setProductPiece(t.getAttribute("data-product-piece-id"), t.value || null);
+    } else if (t.hasAttribute("data-piece-color-id")) {
+      updatePieceColor(t.getAttribute("data-piece-color-id"), t.value);
     }
   }
 
-  /* ---------- Glisser-déposer pour réordonner rayons / produits ---------- */
+  /* ---------- Glisser-déposer : réordonner rayons/produits, et déplacer un produit
+     d'une pièce à une autre (glisser-déposer entre zones différentes) ---------- */
   var dragState = null;
 
   function sortableIdValue(el) {
@@ -1070,20 +1680,31 @@
     return full.slice(full.indexOf(":") + 1);
   }
 
+  function clearDropzoneHighlights() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-piece-dropzone]"), function (z) {
+      z.style.boxShadow = "";
+      z.style.background = "#fff";
+    });
+  }
+
   function onDragPointerDown(e) {
     var handle = e.target.closest("[data-drag-handle]");
     if (!handle) return;
     var row = handle.closest("[data-sortable-id]");
     if (!row) return;
+    e.preventDefault();
+    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    startDragFromRow(row, e.pointerId, e.clientY);
+  }
+
+  function startDragFromRow(row, pointerId, clientY) {
     var group = row.getAttribute("data-sortable-group");
+    var isPieces = group.indexOf("pieces:") === 0;
     var container = row.parentElement;
     var siblings = Array.prototype.filter.call(container.children, function (el) {
       return el.getAttribute && el.getAttribute("data-sortable-group") === group;
     });
-    if (siblings.length < 2) return;
-
-    e.preventDefault();
-    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (!isPieces && siblings.length < 2) return false;
 
     var origIndex = siblings.indexOf(row);
     var origRects = siblings.map(function (el) { return el.getBoundingClientRect(); });
@@ -1091,14 +1712,22 @@
     dragState = {
       row: row,
       group: group,
+      isPieces: isPieces,
+      originKey: isPieces ? group.slice("pieces:".length) : null,
+      crossTarget: null,
       container: container,
       siblings: siblings,
-      pointerId: e.pointerId,
-      startY: e.clientY,
+      pointerId: pointerId,
+      startY: clientY,
       origIndex: origIndex,
       origRects: origRects,
-      rowHeight: origRects[origIndex].height,
-      currentIndex: origIndex
+      rowHeight: (origRects[origIndex] && origRects[origIndex].height) || row.getBoundingClientRect().height,
+      currentIndex: origIndex,
+      dropzones: isPieces
+        ? Array.prototype.map.call(document.querySelectorAll("[data-piece-dropzone]"), function (z) {
+            return { key: z.getAttribute("data-piece-dropzone"), el: z, rect: z.getBoundingClientRect() };
+          })
+        : []
     };
 
     row.style.position = "relative";
@@ -1106,6 +1735,7 @@
     row.style.boxShadow = "0 6px 14px rgba(0,0,0,.18)";
     row.style.background = "#fff";
     row.style.borderRadius = "8px";
+    row.style.touchAction = "none";
     siblings.forEach(function (sib, i) {
       if (i !== origIndex) sib.style.transition = "transform 120ms ease";
     });
@@ -1113,6 +1743,87 @@
     document.addEventListener("pointermove", onDragPointerMove);
     document.addEventListener("pointerup", onDragPointerUp);
     document.addEventListener("pointercancel", onDragPointerUp);
+    return true;
+  }
+
+  /* ---------- Appui long : glisser-déposer accessible partout sur l'article,
+     même hors mode gestion, sans poignée visible. Double-tap manuel (indépendant
+     de l'événement natif dblclick, qui ne se déclenche pas fiablement ici car le
+     clic simple provoque un re-rendu complet qui remplace le nœud DOM entre les
+     deux clics). ---------- */
+  var longPressTimer = null;
+  var longPressCandidate = null;
+  var suppressNextRowClick = false;
+  var lastTap = null;
+  var LONG_PRESS_MS = 420;
+  var LONG_PRESS_MOVE_CANCEL_PX = 10;
+  var DOUBLE_TAP_MS = 400;
+
+  function onRowLongPressPointerDown(e) {
+    if (e.target.closest("[data-drag-handle]")) return; // déjà géré par la poignée en mode gestion
+    if (dragState) return;
+    var tag = e.target.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") return;
+    var row = e.target.closest("[data-sortable-id]");
+    if (!row) return;
+
+    // Détection manuelle du double-tap/double-clic pour entrer en mode gestion.
+    var editId = row.getAttribute("data-dblclick-edit");
+    if (editId) {
+      var now = Date.now();
+      if (lastTap && lastTap.id === editId && (now - lastTap.time) < DOUBLE_TAP_MS) {
+        lastTap = null;
+        if (!ui.manage) {
+          suppressNextRowClick = true;
+          ui.manage = true;
+          render();
+        }
+        return;
+      }
+      lastTap = { id: editId, time: now };
+    }
+
+    longPressCandidate = { row: row, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId };
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(function () {
+      if (!longPressCandidate) return;
+      var cand = longPressCandidate;
+      longPressCandidate = null;
+      var started = startDragFromRow(cand.row, cand.pointerId, cand.startY);
+      if (started) {
+        suppressNextRowClick = true;
+        try { cand.row.setPointerCapture(cand.pointerId); } catch (err) { /* ignore */ }
+        if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) { /* ignore */ } }
+      }
+      document.removeEventListener("pointermove", onLongPressPointerMove);
+      document.removeEventListener("pointerup", onLongPressPointerUp);
+      document.removeEventListener("pointercancel", onLongPressPointerUp);
+    }, LONG_PRESS_MS);
+
+    document.addEventListener("pointermove", onLongPressPointerMove);
+    document.addEventListener("pointerup", onLongPressPointerUp);
+    document.addEventListener("pointercancel", onLongPressPointerUp);
+  }
+
+  function onLongPressPointerMove(e) {
+    if (!longPressCandidate) return;
+    var dx = e.clientX - longPressCandidate.startX;
+    var dy = e.clientY - longPressCandidate.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_CANCEL_PX) {
+      cancelLongPress();
+    }
+  }
+
+  function onLongPressPointerUp() {
+    cancelLongPress();
+  }
+
+  function cancelLongPress() {
+    clearTimeout(longPressTimer);
+    longPressCandidate = null;
+    document.removeEventListener("pointermove", onLongPressPointerMove);
+    document.removeEventListener("pointerup", onLongPressPointerUp);
+    document.removeEventListener("pointercancel", onLongPressPointerUp);
   }
 
   function onDragPointerMove(e) {
@@ -1120,6 +1831,32 @@
     e.preventDefault();
     var dy = e.clientY - dragState.startY;
     dragState.row.style.transform = "translateY(" + dy + "px)";
+
+    if (dragState.isPieces) {
+      var target = null;
+      for (var k = 0; k < dragState.dropzones.length; k++) {
+        var dz = dragState.dropzones[k];
+        var top = k === 0 ? -Infinity : dz.rect.top;
+        var bottom = k === dragState.dropzones.length - 1 ? Infinity : dz.rect.bottom;
+        if (e.clientY >= top && e.clientY <= bottom) { target = dz; break; }
+      }
+      if (target) {
+        clearDropzoneHighlights();
+        if (target.key !== dragState.originKey) {
+          target.el.style.boxShadow = "inset 0 0 0 2px #1E4632";
+          target.el.style.background = "#EAF0EC";
+          dragState.crossTarget = target.key;
+        } else {
+          dragState.crossTarget = null;
+        }
+      }
+    }
+
+    if (dragState.crossTarget && dragState.crossTarget !== dragState.originKey) {
+      dragState.siblings.forEach(function (sib, i) { if (i !== dragState.origIndex) sib.style.transform = ""; });
+      dragState.currentIndex = dragState.origIndex;
+      return;
+    }
 
     var origRect = dragState.origRects[dragState.origIndex];
     var draggedCenter = origRect.top + origRect.height / 2 + dy;
@@ -1148,13 +1885,18 @@
     document.removeEventListener("pointermove", onDragPointerMove);
     document.removeEventListener("pointerup", onDragPointerUp);
     document.removeEventListener("pointercancel", onDragPointerUp);
+    clearDropzoneHighlights();
 
+    var crossTarget = dragState.crossTarget;
+    var originKey = dragState.originKey;
+    var isPieces = dragState.isPieces;
+    var productId = isPieces ? sortableIdValue(dragState.row) : null;
     var finalIndex = dragState.currentIndex;
     var changed = finalIndex !== dragState.origIndex;
     var group = dragState.group;
     var newOrderEls = null;
 
-    if (changed) {
+    if (changed && !(crossTarget && crossTarget !== originKey)) {
       newOrderEls = dragState.siblings.slice();
       newOrderEls.splice(dragState.origIndex, 1);
       newOrderEls.splice(finalIndex, 0, dragState.row);
@@ -1164,6 +1906,7 @@
     dragState.row.style.position = "";
     dragState.row.style.zIndex = "";
     dragState.row.style.boxShadow = "";
+    dragState.row.style.touchAction = "";
     dragState.siblings.forEach(function (sib) {
       sib.style.transform = "";
       sib.style.transition = "";
@@ -1171,12 +1914,19 @@
 
     dragState = null;
 
+    if (isPieces && crossTarget && crossTarget !== originKey) {
+      assignProductToPieceEnd(productId, crossTarget === "unassigned" ? null : crossTarget);
+      return;
+    }
+
     if (changed && newOrderEls) {
       var ids = newOrderEls.map(sortableIdValue);
       if (group === "rayons") {
         reorderRayons(ids);
       } else if (group.indexOf("products:") === 0) {
         reorderProductsInRayon(group.slice("products:".length), ids);
+      } else if (group.indexOf("pieces:") === 0) {
+        reorderProductsInPiece(originKey === "unassigned" ? null : originKey, ids);
       }
     }
   }
@@ -1188,6 +1938,7 @@
     appEl.addEventListener("input", handleInput);
     appEl.addEventListener("change", handleChange);
     appEl.addEventListener("pointerdown", onDragPointerDown);
+    appEl.addEventListener("pointerdown", onRowLongPressPointerDown);
     render();
     load();
   });
