@@ -1698,6 +1698,22 @@
   }
 
   function startDragFromRow(row, pointerId, clientY) {
+    if (dragState) {
+      // Sécurité : un glisser précédent n'a pas été proprement clôturé (ex. écouteur
+      // manqué). On le nettoie avant d'en démarrer un nouveau plutôt que de laisser
+      // deux états de glisser coexister, ce qui bloque toute interaction ultérieure.
+      teardownDragListeners();
+      try {
+        dragState.row.style.transform = "";
+        dragState.row.style.position = "";
+        dragState.row.style.zIndex = "";
+        dragState.row.style.boxShadow = "";
+        dragState.row.style.touchAction = "";
+        dragState.siblings.forEach(function (sib) { sib.style.transform = ""; sib.style.transition = ""; });
+      } catch (err) { /* l'élément a peut-être déjà été retiré du DOM par un re-rendu */ }
+      clearDropzoneHighlights();
+      dragState = null;
+    }
     var group = row.getAttribute("data-sortable-group");
     var isPieces = group.indexOf("pieces:") === 0;
     var container = row.parentElement;
@@ -1762,26 +1778,27 @@
   function onRowLongPressPointerDown(e) {
     if (e.target.closest("[data-drag-handle]")) return; // déjà géré par la poignée en mode gestion
     if (dragState) return;
-    var tag = e.target.tagName;
-    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") return;
     var row = e.target.closest("[data-sortable-id]");
     if (!row) return;
 
-    // Détection manuelle du double-tap/double-clic pour entrer en mode gestion.
+    // Détection manuelle du double-tap/double-clic (entrer ET sortir du mode gestion),
+    // vérifiée avant l'exclusion des champs de formulaire pour fonctionner aussi quand
+    // le nom est un champ de saisie (cas du mode gestion).
     var editId = row.getAttribute("data-dblclick-edit");
     if (editId) {
       var now = Date.now();
       if (lastTap && lastTap.id === editId && (now - lastTap.time) < DOUBLE_TAP_MS) {
         lastTap = null;
-        if (!ui.manage) {
-          suppressNextRowClick = true;
-          ui.manage = true;
-          render();
-        }
+        suppressNextRowClick = true;
+        ui.manage = !ui.manage;
+        render();
         return;
       }
       lastTap = { id: editId, time: now };
     }
+
+    var tag = e.target.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") return;
 
     longPressCandidate = { row: row, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId };
     clearTimeout(longPressTimer);
@@ -1792,7 +1809,6 @@
       var started = startDragFromRow(cand.row, cand.pointerId, cand.startY);
       if (started) {
         suppressNextRowClick = true;
-        try { cand.row.setPointerCapture(cand.pointerId); } catch (err) { /* ignore */ }
         if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) { /* ignore */ } }
       }
       document.removeEventListener("pointermove", onLongPressPointerMove);
@@ -1880,11 +1896,20 @@
     dragState.currentIndex = dragState.origIndex + passedBelow - passedAbove;
   }
 
-  function onDragPointerUp(e) {
-    if (!dragState) return;
+  function teardownDragListeners() {
     document.removeEventListener("pointermove", onDragPointerMove);
     document.removeEventListener("pointerup", onDragPointerUp);
     document.removeEventListener("pointercancel", onDragPointerUp);
+  }
+
+  function onDragPointerUp(e) {
+    // Le nettoyage des écouteurs doit TOUJOURS s'exécuter, même si dragState est déjà
+    // nul (pointerup/pointercancel peuvent se déclencher plusieurs fois, notamment quand
+    // l'élément capturé est retiré du DOM par un re-rendu) — sinon les écouteurs
+    // s'accumulent silencieusement sur document et finissent par entrer en conflit,
+    // bloquant le glisser-déposer après quelques utilisations.
+    teardownDragListeners();
+    if (!dragState) return;
     clearDropzoneHighlights();
 
     var crossTarget = dragState.crossTarget;
