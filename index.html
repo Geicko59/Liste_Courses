@@ -1801,11 +1801,18 @@
     }
   }
 
-  // Fait défiler jusqu'à l'article concerné juste après le prochain rendu.
-  function focusProductRow(productId) {
+  // Compense le défilement pour que l'article reste exactement à la même position à
+  // l'écran après bascule du mode gestion (dont la mise en page change la hauteur des
+  // lignes) — plutôt que de simplement le recentrer, ce qui déplacerait la vue.
+  function keepProductPosition(productId, beforeTop) {
     requestAnimationFrame(function () {
       var el = appEl.querySelector('[data-sortable-id="' + cssEscape("product:" + productId) + '"]');
-      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (!el) return;
+      var afterTop = el.getBoundingClientRect().top;
+      var delta = afterTop - beforeTop;
+      if (Math.abs(delta) > 0.5) {
+        window.scrollBy(0, delta);
+      }
     });
   }
 
@@ -1961,10 +1968,11 @@
       if (lastTap && lastTap.id === editId && (now - lastTap.time) < DOUBLE_TAP_MS) {
         lastTap = null;
         suppressNextRowClick = true;
+        var beforeTop = row.getBoundingClientRect().top;
         ui.manage = !ui.manage;
         revealProduct(editId);
         render();
-        focusProductRow(editId);
+        keepProductPosition(editId, beforeTop);
         return;
       }
       lastTap = { id: editId, time: now };
