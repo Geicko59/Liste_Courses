@@ -365,6 +365,8 @@
       "h1{font-size:20px;background:#1E4632;color:#F1F4EE;padding:16px 18px;margin:0 0 4px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px;}" +
       "#compactToggle{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border:none;border-radius:7px;color:#F1F4EE;padding:5px 8px;font-size:11px;cursor:pointer;flex-shrink:0;}" +
       ".date{font-size:13px;color:#5f6b62;background:#fff;padding:8px 18px;margin-bottom:16px;border-radius:0 0 10px 10px;}" +
+      ".js-fallback-hint{display:block;background:#FFF3CD;color:#7A5C00;font-size:12px;line-height:1.5;padding:10px 14px;border-radius:8px;margin-bottom:16px;}" +
+      "html.js-ready .js-fallback-hint{display:none;}" +
       ".rayon{margin-bottom:16px;}" +
       ".rayon-toggle{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;margin:0 0 6px;cursor:pointer;font-family:inherit;}" +
       ".rayon-tag{display:inline-block;color:#fff;font-size:12px;letter-spacing:.4px;padding:4px 10px;border-radius:4px 4px 4px 0;}" +
@@ -395,11 +397,13 @@
       "@keyframes confetti-fall{to{transform:translateY(110vh) rotate(720deg);opacity:.15;}}" +
       "@keyframes celebration-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7);}60%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}100%{opacity:1;transform:translate(-50%,-50%) scale(1);}}" +
       "@media print{body{background:#fff;} input{-webkit-print-color-adjust:exact;} ul.collapsed{display:block;}}" +
-      "\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n<h1><span>" + esc(title) + '</span><button id="compactToggle" type="button">Compact</button></h1>\n<div class="date">' + esc(dateLabel) + "</div>\n" +
+      "\n</style>\n</head>\n<body>\n<noscript><div style=\"background:#FFF3CD;color:#7A5C00;font-size:13px;padding:10px 14px;margin:14px;border-radius:8px;\">JavaScript est d\u00e9sactiv\u00e9 : les cases \u00e0 cocher, notes et rayons repliables ne fonctionneront pas sur cette page tant qu'il n'est pas r\u00e9activ\u00e9.</div></noscript>\n<div class=\"wrap\">\n<h1><span>" + esc(title) + '</span><button id="compactToggle" type="button">Compact</button></h1>\n<div class="date">' + esc(dateLabel) + "</div>\n" +
+      '<div class="js-fallback-hint">\u26a0\ufe0f Les cases ne r\u00e9pondent pas ? Cette page s\'est probablement ouverte dans un aper\u00e7u interne (Mail, Messages, WhatsApp...) qui n\'ex\u00e9cute pas le code n\u00e9cessaire. Utilise le bouton \u00ab\u00a0Partager\u00a0\u00bb ou \u00ab\u00a0\u2026\u00a0\u00bb puis \u00ab\u00a0Ouvrir dans Safari\u00a0\u00bb (ou Chrome) pour que tout fonctionne.</div>\n' +
       groupsHtml +
       '<div class="general-note"><h2>NOTES</h2><textarea data-general-note rows="3" placeholder="Idée de repas, autre chose à ne pas oublier…">' + esc(note || "") + "</textarea></div>" +
       "\n</div>\n<script>\n" +
       "(function(){" +
+      "document.documentElement.classList.add(\"js-ready\");" +
       "var KEY=" + JSON.stringify(storageKey) + ";" +
       "var COMPACT_KEY=\"exported-list:compact-pref\";" +
       "function load(){try{var raw=JSON.parse(localStorage.getItem(KEY)||\"{}\");if(!raw.c){raw={c:raw,n:{},gn:\"\"};}return raw;}catch(e){return {c:{},n:{},gn:\"\"};}}" +
