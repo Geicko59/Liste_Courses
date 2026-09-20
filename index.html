@@ -267,6 +267,7 @@
     listNote: "",
     archives: [],
     savedConfigs: [],
+    selectionStatus: {},
     activeRayonConfigId: null,
     activePieceConfigId: null,
     catalogVersion: CATALOG_VERSION
@@ -532,6 +533,7 @@
           if (parsed.catalog) state.catalog = parsed.catalog;
           if (parsed.pieces) state.pieces = parsed.pieces;
           if (parsed.savedConfigs) state.savedConfigs = parsed.savedConfigs;
+          if (parsed.selectionStatus) state.selectionStatus = parsed.selectionStatus;
           if (parsed.activeRayonConfigId) state.activeRayonConfigId = parsed.activeRayonConfigId;
           if (parsed.activePieceConfigId) state.activePieceConfigId = parsed.activePieceConfigId;
           if (parsed.list) state.list = parsed.list;
@@ -603,6 +605,51 @@
     else state.list.push({ productId: productId, checked: false });
     scheduleSave();
     render();
+  }
+
+  // Cycle de sélection à 4 états sur les articles du catalogue (Rayons/Pièces) :
+  // vierge -> sélectionné (dans la liste) -> exclu -> incertain -> vierge...
+  // Seul l'état "sélectionné" fait partie de la liste de courses ; les autres
+  // états sont de simples annotations visuelles dans le catalogue.
+  function getSelectionStatus(productId) {
+    var status = state.selectionStatus[productId];
+    if (status) return status;
+    return state.list.some(function (i) { return i.productId === productId; }) ? "want" : "none";
+  }
+
+  function cycleSelectionStatus(productId) {
+    var current = getSelectionStatus(productId);
+    var next = current === "none" ? "want" : current === "want" ? "excluded" : current === "excluded" ? "maybe" : "none";
+    if (next === "none") {
+      delete state.selectionStatus[productId];
+    } else {
+      state.selectionStatus[productId] = next;
+    }
+    var idx = state.list.findIndex(function (i) { return i.productId === productId; });
+    if (next === "want") {
+      if (idx === -1) state.list.push({ productId: productId, checked: false });
+    } else if (idx >= 0) {
+      state.list.splice(idx, 1);
+    }
+    scheduleSave();
+    render();
+  }
+
+  function selectionCircleHtml(productId, size, fontSize) {
+    var status = getSelectionStatus(productId);
+    var bg = "#F1F4EE", border = "1px solid #D6DBD0", content = "";
+    if (status === "want") { bg = "#1E4632"; border = "none"; content = "\uD83D\uDED2"; }
+    else if (status === "excluded") { bg = "#C1483D"; border = "none"; content = '<span style="color:#fff;font-weight:700;">\u2715</span>'; }
+    else if (status === "maybe") { bg = "#3E8FB0"; border = "none"; content = '<span style="color:#fff;font-weight:700;">?</span>'; }
+    return '<span style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + bg + ";border:" + border + ";font-size:" + fontSize + 'px;line-height:1;">' + content + "</span>";
+  }
+
+  function selectionNameStyle(productId) {
+    var status = getSelectionStatus(productId);
+    if (status === "want") return "color:#1E7A46;";
+    if (status === "excluded") return "color:#94998f;text-decoration:line-through;";
+    if (status === "maybe") return "color:#3E8FB0;";
+    return "";
   }
 
   function isListComplete() {
@@ -1056,13 +1103,25 @@
 
   // En-tête de rayon repliable : replié, n'affiche que le nom du rayon et un chiffre
   // (nombre d'articles cochés dans "Ma liste", ou ajoutés à la liste dans le Catalogue).
-  function rayonHeaderRow(rayon, count, totalInGroup, collapsed, toggleAction, compact, alwaysShowCount) {
+  function rayonHeaderRow(rayon, count, totalInGroup, collapsed, toggleAction, compact, alwaysShowCount, badges) {
+    var badgeHtml = "";
+    if (badges) {
+      badgeHtml = badges.map(function (b) {
+        return '<span style="display:flex;align-items:center;gap:4px;font-size:' + (compact ? 11 : 12) + 'px;background:#fff;padding:2px 8px;border-radius:10px;flex-shrink:0;">' +
+          b.iconHtml + '<span style="color:' + b.color + ';font-weight:700;">' + b.count + "</span></span>";
+      }).join("");
+    } else if (collapsed || alwaysShowCount) {
+      badgeHtml = '<span style="font-size:' + (compact ? 11 : 12) + 'px;color:#5f6b62;background:#fff;padding:2px 9px;border-radius:10px;flex-shrink:0;">' + count + "</span>";
+    }
     return '<button data-action="' + toggleAction + '" data-id="' + rayon.id + '" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:0;cursor:pointer;text-align:left;">' +
       rayonTag(rayon, compact) +
-      (collapsed || alwaysShowCount ? '<span style="font-size:' + (compact ? 11 : 12) + 'px;color:#5f6b62;background:#fff;padding:2px 9px;border-radius:10px;flex-shrink:0;">' + count + "</span>" : "") +
+      badgeHtml +
       '<span style="margin-left:auto;color:#93998D;flex-shrink:0;">' + icon(collapsed ? "chevronDown" : "chevronUp", compact ? 14 : 16) + "</span>" +
       "</button>";
   }
+
+  var CART_BADGE_ICON = '<span style="font-size:12px;line-height:1;">\uD83D\uDED2</span>';
+  var MAYBE_BADGE_ICON = '<span style="width:14px;height:14px;border-radius:50%;background:#3E8FB0;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;line-height:1;flex-shrink:0;">?</span>';
 
   function renderHeader() {
     var listItems = getListItems();
@@ -1264,7 +1323,8 @@
     catalogByRayon.forEach(function (g) {
       var rIndex = state.rayons.findIndex(function (r) { return r.id === g.rayon.id; });
       var collapsed = !manage && !!ui.collapsedCatalogRayons[g.rayon.id];
-      var inListCount = g.items.filter(function (p) { return inListIds[p.id]; }).length;
+      var wantCount = g.items.filter(function (p) { return getSelectionStatus(p.id) === "want"; }).length;
+      var maybeCount = g.items.filter(function (p) { return getSelectionStatus(p.id) === "maybe"; }).length;
       html += '<section style="margin-bottom:' + (compact ? 8 : 16) + 'px;">';
       if (manage) {
         html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
@@ -1283,7 +1343,10 @@
             "</div></div>";
         }
       } else {
-        html += '<div style="margin-bottom:' + (compact ? 3 : 6) + 'px;">' + rayonHeaderRow(g.rayon, inListCount, g.items.length, collapsed, "toggle-catalog-rayon", compact) + "</div>";
+        html += '<div style="margin-bottom:' + (compact ? 3 : 6) + 'px;">' + rayonHeaderRow(g.rayon, 0, g.items.length, collapsed, "toggle-catalog-rayon", compact, false, [
+          { iconHtml: CART_BADGE_ICON, color: "#1E7A46", count: wantCount },
+          { iconHtml: MAYBE_BADGE_ICON, color: "#3E8FB0", count: maybeCount }
+        ]) + "</div>";
       }
       if (collapsed) {
         html += "</section>";
@@ -1298,10 +1361,9 @@
         html += '<div data-sortable-id="product:' + p.id + '" data-sortable-group="products:' + g.rayon.id + '" data-dblclick-edit="' + p.id + '" style="display:flex;flex-wrap:wrap;align-items:center;gap:' + (compact ? 6 : 8) + 'px;padding:' + (compact ? "5px 8px 5px 10px" : "10px 8px 10px 14px") + ';border-top:' + (idx === 0 ? "none" : "1px solid #EDEFE9") + ';background:#fff;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;">';
         if (manage) {
           html += '<span data-drag-handle="product:' + p.id + '" style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#93998D;cursor:grab;touch-action:none;">' + icon("grip", 16) + "</span>" +
-            '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
-            '<span style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:' + (active ? "#1E4632" : "#F1F4EE") + ";color:" + (active ? "#fff" : "#1E4632") + ";border:" + (active ? "none" : "1px solid #D6DBD0") + ';">' +
-            icon(active ? "check" : "plus", 13) + "</span></button>" +
-            '<input data-product-name-id="' + p.id + '" value="' + esc(p.name) + '" style="flex:1 1 140px;min-width:110px;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;" />' +
+            '<button data-action="cycle-selection" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
+            selectionCircleHtml(p.id, 22, 13) + "</button>" +
+            '<input data-product-name-id="' + p.id + '" value="' + esc(p.name) + '" style="flex:1 1 140px;min-width:110px;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;' + selectionNameStyle(p.id) + '" />' +
             noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52") +
             '<select data-product-rayon-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
             state.rayons.map(function (r) { return '<option value="' + r.id + '"' + (r.id === p.rayonId ? " selected" : "") + ">" + esc(r.name) + "</option>"; }).join("") +
@@ -1312,10 +1374,9 @@
             "</select>" +
             '<button data-action="delete-product" data-id="' + p.id + '" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 14, "#C1483D") + "</button>";
         } else {
-          html += '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex:1 1 160px;min-width:110px;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;padding:0;">' +
-            '<span style="width:' + (compact ? 18 : 22) + 'px;height:' + (compact ? 18 : 22) + 'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (active ? "#1E4632" : "#F1F4EE") + ";color:" + (active ? "#fff" : "#1E4632") + ";border:" + (active ? "none" : "1px solid #D6DBD0") + ';">' +
-            icon(active ? "check" : "plus", compact ? 11 : 13) + "</span>" +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.name) + "</span></button>" +
+          html += '<button data-action="cycle-selection" data-id="' + p.id + '" style="flex:1 1 160px;min-width:110px;display:flex;align-items:center;gap:' + (compact ? 7 : 10) + 'px;background:transparent;border:none;text-align:left;cursor:pointer;font-size:' + (compact ? 13 : 15) + 'px;padding:0;">' +
+            selectionCircleHtml(p.id, compact ? 18 : 22, compact ? 11 : 13) +
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + selectionNameStyle(p.id) + '">' + esc(p.name) + "</span></button>" +
             noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52");
         }
         html += "</div>";
@@ -1368,7 +1429,8 @@
       if (g.items.length === 0 && g.isUnassigned) return;
       var pIndex = state.pieces.findIndex(function (pc) { return pc.id === g.piece.id; });
       var collapsed = !manage && !!ui.collapsedPieces[g.key];
-      var inListCount = g.items.filter(function (p) { return inListIds[p.id]; }).length;
+      var wantCount = g.items.filter(function (p) { return getSelectionStatus(p.id) === "want"; }).length;
+      var maybeCount = g.items.filter(function (p) { return getSelectionStatus(p.id) === "maybe"; }).length;
       html += '<section style="margin-bottom:' + (compact ? 8 : 16) + 'px;">';
       if (manage && !g.isUnassigned) {
         html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
@@ -1389,7 +1451,10 @@
       } else if (g.isUnassigned) {
         html += '<div style="margin-bottom:6px;font-size:12px;color:#5f6b62;font-weight:600;letter-spacing:.4px;">NON CLASSÉ</div>';
       } else {
-        html += '<div style="margin-bottom:' + (compact ? 3 : 6) + 'px;">' + rayonHeaderRow(g.piece, inListCount, g.items.length, collapsed, "toggle-piece", compact) + "</div>";
+        html += '<div style="margin-bottom:' + (compact ? 3 : 6) + 'px;">' + rayonHeaderRow(g.piece, 0, g.items.length, collapsed, "toggle-piece", compact, false, [
+          { iconHtml: CART_BADGE_ICON, color: "#1E7A46", count: wantCount },
+          { iconHtml: MAYBE_BADGE_ICON, color: "#3E8FB0", count: maybeCount }
+        ]) + "</div>";
       }
       if (collapsed) {
         html += "</section>";
@@ -1405,11 +1470,10 @@
         if (manage) {
           html += '<span data-drag-handle="product:' + p.id + '" style="width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#93998D;cursor:grab;touch-action:none;">' + icon("grip", 16) + "</span>";
         }
-        html += '<button data-action="toggle-in-list" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
-          '<span style="width:' + (compact ? 18 : 22) + 'px;height:' + (compact ? 18 : 22) + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:' + (active ? "#1E4632" : "#F1F4EE") + ";color:" + (active ? "#fff" : "#1E4632") + ";border:" + (active ? "none" : "1px solid #D6DBD0") + ';">' +
-          icon(active ? "check" : "plus", compact ? 11 : 13) + "</span></button>";
+        html += '<button data-action="cycle-selection" data-id="' + p.id + '" style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0;">' +
+          selectionCircleHtml(p.id, compact ? 18 : 22, compact ? 11 : 13) + "</button>";
         if (manage) {
-          html += '<input data-product-name-id="' + p.id + '" value="' + esc(p.name) + '" style="flex:1 1 140px;min-width:110px;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;" />' +
+          html += '<input data-product-name-id="' + p.id + '" value="' + esc(p.name) + '" style="flex:1 1 140px;min-width:110px;padding:6px 8px;border-radius:6px;border:1px solid #D6DBD0;font-size:14px;' + selectionNameStyle(p.id) + '" />' +
             noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52") +
             '<select data-product-rayon-id="' + p.id + '" style="flex-shrink:0;font-size:12px;padding:5px 4px;border-radius:6px;border:1px solid #D6DBD0;max-width:86px;">' +
             state.rayons.map(function (r) { return '<option value="' + r.id + '"' + (r.id === p.rayonId ? " selected" : "") + ">" + esc(r.name) + "</option>"; }).join("") +
@@ -1420,7 +1484,7 @@
             "</select>" +
             '<button data-action="delete-product" data-id="' + p.id + '" style="width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E3E7DD;border-radius:6px;cursor:pointer;">' + icon("trash", 14, "#C1483D") + "</button>";
         } else {
-          html += '<span style="flex:1 1 140px;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:' + (compact ? 13 : 15) + 'px;">' + esc(p.name) + "</span>" +
+          html += '<span style="flex:1 1 140px;min-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:' + (compact ? 13 : 15) + 'px;' + selectionNameStyle(p.id) + '">' + esc(p.name) + "</span>" +
             noteFieldHtml(p.id, state.notes[p.id] || "", "#4b5a52");
         }
         html += "</div>";
@@ -1640,6 +1704,7 @@
     switch (action) {
       case "toggle-checked": toggleChecked(id); break;
       case "toggle-in-list": toggleInList(id); break;
+      case "cycle-selection": cycleSelectionStatus(id); break;
       case "delete-product": deleteProduct(id); break;
       case "move-rayon": moveRayon(parseInt(el.getAttribute("data-index"), 10), parseInt(el.getAttribute("data-dir"), 10)); break;
       case "delete-rayon":
